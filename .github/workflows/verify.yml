@@ -88,3 +88,10 @@ jobs:
           path: |
             dist/neko_danmaku.neko-plugin
             dist/verification.txt
+
+  market-verify:
+    if: ${{ github.workflow == 'Verify N.E.K.O Plugin' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    uses: Project-N-E-K-O/N.E.K.O/.github/workflows/plugin-market-verify.yml@09842497dffc41d41d88d2d8be88a0d90f738c69
+    with:
+      plugin-id: neko_danmaku
+      neko-ref: 09842497dffc41d41d88d2d8be88a0d90f738c69
