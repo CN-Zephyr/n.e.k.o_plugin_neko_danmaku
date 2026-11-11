@@ -75,6 +75,25 @@
 - 弹幕浮层只监听本机 `127.0.0.1` HTTP 接口。
 - 对话与配置保留在本机，不上传到第三方服务。
 
+## 配置持久化
+
+插件运行参数与面板偏好统一保存在 `data/`，不写回 `plugin.toml`：
+
+```text
+data/
+├─ config/
+│  ├─ general.json        插件总开关
+│  ├─ source.json         聊天来源与轮询参数
+│  ├─ overlay.json        端口、自启与角色预设
+│  ├─ overlay_style.json  弹幕外观与排版
+│  └─ ui.json             面板主题
+└─ state/
+   └─ bridge_cursor.json  桥接游标
+```
+
+升级时会自动迁移旧 `plugin.toml` 配置和旧 `overlay_state.json` 样式。
+发布包不包含本机配置与状态。
+
 ## 开发
 
 ```text
@@ -82,7 +101,7 @@ neko_danmaku/
 ├─ core/      数据源编排、配置、文本清洗
 ├─ overlay/   Qt 透明浮层与 Win32 窗口跟随
 ├─ sources/   conversations、SQLite、recent.json 数据源
-├─ static/    液态玻璃控制台
+├─ static/    液态玻璃控制台（单文件）
 ├─ tests/     UI、配置、数据源与绘制回归测试
 └─ vendor/    随插件分发的 PySide6
 ```
@@ -90,7 +109,6 @@ neko_danmaku/
 ```powershell
 python -m pytest -q tests
 ruff check .
-node --check static/panel.js
 ```
 
 本地运行浮层：

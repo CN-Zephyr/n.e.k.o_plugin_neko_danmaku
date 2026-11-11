@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import sys
+from pathlib import Path
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.dirname(_HERE)          # 插件根
@@ -302,6 +303,7 @@ def test_sdk_empty_and_blank_records_skipped():
 # ---- core/config 默认值 (0.2.0 起默认走 sdk) ----
 _config = _load("danmaku_config", os.path.join(_CORE, "config.py"))
 DanmakuConfig = _config.DanmakuConfig
+ConfigStore = _config.ConfigStore
 
 
 def test_config_defaults_sdk():
@@ -309,6 +311,7 @@ def test_config_defaults_sdk():
     assert cfg.data_source == "sdk"
     assert abs(cfg.sdk_poll_interval_s - 0.3) < 1e-9
     assert cfg.poll_interval_s > 0
+    assert cfg.ui_theme == "light"
     # 显式指定仍然生效
     assert DanmakuConfig.from_raw({"data_source": "time_index"}).data_source == "time_index"
     assert DanmakuConfig.from_raw({"sdk_poll_interval_s": 0.5}).sdk_poll_interval_s == 0.5
@@ -316,6 +319,8 @@ def test_config_defaults_sdk():
     d = cfg.to_dict()
     assert "sdk_poll_interval_s" in d
     assert DanmakuConfig.from_raw(d).data_source == "sdk"
+    assert DanmakuConfig.from_raw({"ui_theme": "dark"}).ui_theme == "dark"
+    assert DanmakuConfig.from_raw({"ui_theme": "bad"}).ui_theme == "light"
 
 
 def test_config_rejects_invalid_runtime_values():
@@ -348,6 +353,45 @@ def test_config_clamps_supported_ranges():
     assert low.overlay_port == 1024
     assert high.poll_interval_s == 10.0
     assert high.sdk_poll_interval_s == 5.0
+
+
+def test_config_store_persists_categories_and_migrates_legacy(tmp_path):
+    root = Path(tmp_path)
+    store = ConfigStore(root)
+    migrated = store.load({
+        "data_source": "time_index",
+        "overlay_port": 49000,
+        "role_preset": {"human": "neko", "ai": "pink"},
+        "ui_theme": "dark",
+    })
+
+    assert migrated["data_source"] == "time_index"
+    assert migrated["overlay_port"] == 49000
+    assert migrated["ui_theme"] == "dark"
+    for name in ("general", "source", "overlay", "ui"):
+        assert (root / "config" / f"{name}.json").is_file()
+
+    store.save({
+        "data_source": "recent_file",
+        "sdk_poll_interval_s": 0.2,
+        "ui_theme": "light",
+    })
+    reloaded = ConfigStore(root).load()
+    assert reloaded["data_source"] == "recent_file"
+    assert reloaded["sdk_poll_interval_s"] == 0.2
+    assert reloaded["overlay_port"] == 49000
+    assert reloaded["ui_theme"] == "light"
+
+
+def test_config_store_creates_defaults_on_first_run(tmp_path):
+    store = ConfigStore(Path(tmp_path))
+    values = store.load()
+
+    assert values["data_source"] == "sdk"
+    assert values["ui_theme"] == "light"
+    assert set(store.paths()) == {
+        "config_dir", "general", "source", "overlay", "ui",
+    }
 
 
 if __name__ == "__main__":

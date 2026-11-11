@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -62,12 +63,13 @@ def test_overlay_style_keeps_valid_customization():
     assert style["glow"] is True
 
 
-def test_overlay_paint_path_accepts_sanitized_runtime_config():
+def test_overlay_paint_path_accepts_sanitized_runtime_config(tmp_path):
     overlay = _load_overlay_module()
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication([])
-    window = overlay.DanmakuOverlay(port=0)
+    state_path = tmp_path / "config" / "overlay_style.json"
+    window = overlay.DanmakuOverlay(port=0, state_path=state_path)
     try:
         window.apply_config({
             "font_size": "invalid",
@@ -84,6 +86,9 @@ def test_overlay_paint_path_accepts_sanitized_runtime_config():
         sprite = window._render_sprite("弹幕绘制测试", window.style)
         assert not sprite.isNull()
         assert sprite.width() > 0 and sprite.height() > 0
+        assert state_path.is_file()
+        persisted = json.loads(state_path.read_text(encoding="utf-8"))
+        assert persisted["style"]["max_items"] == 200
     finally:
         try:
             window._http.shutdown()

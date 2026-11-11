@@ -23,7 +23,7 @@ enabled = true
 auto_start = true
 
 [plugin.store]
-enabled = true
+enabled = false
 
 [plugin.ui]
 enabled = true
@@ -35,13 +35,9 @@ entry = "static/index.html"
 context = "dashboard"
 permissions = ["state:read", "action:call"]
 
-[neko_danmaku]
-enabled = true
-data_source = "sdk"               # sdk(推荐: 宿主 conversations 通道, 含 AI 主动搭话) | time_index | recent_file
-recent_path = ""                  # recent.json 显式路径 (recent_file 用; 留空自动探测)
-db_path = ""                      # time_indexed.db 显式路径 (留空自动探测)
-poll_interval_s = 0.8             # 文件源轮询间隔 / SDK 间隔上限
-sdk_poll_interval_s = 0.3         # SDK 拉取间隔 (拉取式通道, 0.2~0.3 秒接近实时)
-overlay_port = 48777
-auto_start_overlay = true
-role_preset = { human = "master", ai = "mix" }   # 主人/猫娘各自样式；master=暖白无底, mix=随机彩+气泡(面板可切换)
+[[plugin.ui.guide]]
+id = "guide"
+title = "使用指南"
+entry = "docs/ui/guide.md"
+mode = "markdown"
+permissions = ["state:read"]

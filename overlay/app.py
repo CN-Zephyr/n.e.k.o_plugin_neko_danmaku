@@ -18,6 +18,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QRectF, Qt, QTimer, Signal
@@ -287,13 +288,17 @@ class DanmakuOverlay(QWidget):
     stateChanged = Signal(str)
     # (text, style_dict)
     pushRequested = Signal(str, object)
+    configRequested = Signal(object)   # HTTP 线程 → Qt 主线程应用配置
     targetRequested = Signal(object)   # HTTP 线程 → Qt 主线程执行目标切换
     interactRequested = Signal(bool)   # 热键线程 → Qt 主线程切换穿透/交互
     exitRequested = Signal()           # 热键线程 → 退出
 
-    def __init__(self, port: int = 48777) -> None:
+    def __init__(
+        self, port: int = 48777, state_path: str | Path | None = None
+    ) -> None:
         super().__init__()
         self._port = port
+        self._state_file = Path(state_path or WINDOW_STATE_FILE)
         self._items: list[Danmaku] = []
         self._paused = False
         self._passthrough = True
@@ -327,6 +332,7 @@ class DanmakuOverlay(QWidget):
         self._setup_window()
         self._apply_passthrough()
         self.pushRequested.connect(self.push)
+        self.configRequested.connect(self.apply_config)
         self.targetRequested.connect(self._apply_target)
         self.interactRequested.connect(self.set_interactive)
         self.exitRequested.connect(self.close)
@@ -395,9 +401,8 @@ class DanmakuOverlay(QWidget):
                             win.pushRequested.emit(text, st)
                         self._reply(200, {"ok": True, "accepted": True})
                     elif self.path == "/config":
-                        win.apply_config(data)
-                        self._reply(200, {"ok": True, "style": win.style,
-                                          "speed": win._speed, "opacity": win._opacity})
+                        win.configRequested.emit(data)
+                        self._reply(200, {"ok": True})
                     elif self.path == "/target":
                         res = win.set_target(data)
                         self._reply(200 if res.get("ok") else 400, res)
@@ -508,6 +513,7 @@ class DanmakuOverlay(QWidget):
         self.style = sanitize_style(self.style)
         self.setWindowOpacity(max(0.05, min(1.0, self._opacity)))
         self._reflow_all()
+        self._save_state()
         self.stateChanged.emit("config")
 
     # ── 窗口 ──────────────────────────────────────────────
@@ -1208,7 +1214,12 @@ class DanmakuOverlay(QWidget):
     # ── 持久化 ────────────────────────────────────────────
     def _load_state(self) -> None:
         try:
-            with open(WINDOW_STATE_FILE, encoding="utf-8") as f:
+            candidates = [self._state_file]
+            legacy = Path(WINDOW_STATE_FILE)
+            if legacy not in candidates:
+                candidates.append(legacy)
+            source = next(path for path in candidates if path.is_file())
+            with open(source, encoding="utf-8") as f:
                 st = json.load(f)
             if st.get("style"):
                 self.style = merge_style(self.style, st["style"])
@@ -1225,7 +1236,8 @@ class DanmakuOverlay(QWidget):
 
     def _save_state(self) -> None:
         try:
-            with open(WINDOW_STATE_FILE, "w", encoding="utf-8") as f:
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._state_file, "w", encoding="utf-8") as f:
                 json.dump({"style": self.style, "speed": self._speed,
                            "opacity": self._opacity,
                            "area": self._area,
@@ -1315,6 +1327,10 @@ def _qt_teardown(app, win: DanmakuOverlay) -> None:
         pass
     # 3) 关窗口 + 事件循环 flush (删除挂起的 deleteLater)
     try:
+        win._save_state()
+    except Exception:
+        pass
+    try:
         win.close()
     except Exception:
         pass
@@ -1341,14 +1357,19 @@ def _qt_teardown(app, win: DanmakuOverlay) -> None:
         pass
 
 
-def run_overlay(port: int = 48777, *, on_ready=None) -> int:
+def run_overlay(
+    port: int = 48777,
+    *,
+    state_path: str | Path | None = None,
+    on_ready=None,
+) -> int:
     """在【当前线程】创建 Qt 浮层并进入事件循环 (供线程内运行)。
 
     独立脚本 (main) 与插件进程内嵌线程 (runtime.OverlayHost) 共用。
     事件循环退出后立即在本线程做完整 Qt 清理 (_qt_teardown)。
     """
     app = QApplication.instance() or QApplication([])
-    win = DanmakuOverlay(port=port)
+    win = DanmakuOverlay(port=port, state_path=state_path)
     win.show()
     # 延迟到 winId 就绪后原生置顶 (Qt WindowStaysOnTopHint + Win32 TOPMOST 双保险)
     QTimer.singleShot(120, lambda: _keep_topmost(win))
@@ -1371,8 +1392,12 @@ def main() -> int:
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=48777)
+    ap.add_argument("--state-path", default="")
     args, _ = ap.parse_known_args()
-    return run_overlay(port=args.port)
+    return run_overlay(
+        port=args.port,
+        state_path=args.state_path or None,
+    )
 
 
 if __name__ == "__main__":

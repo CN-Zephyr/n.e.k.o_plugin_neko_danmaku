@@ -1,21 +1,41 @@
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
-CSS = (ROOT / "static" / "panel.css").read_text(encoding="utf-8")
-JS = (ROOT / "static" / "panel.js").read_text(encoding="utf-8")
+CSS = HTML
+JS = HTML
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
-def test_panel_is_split_and_defaults_to_light_theme():
+def test_panel_uses_standard_single_file_static_layout():
     assert 'data-theme="light"' in HTML
-    assert '<link rel="stylesheet" href="panel.css">' in HTML
-    assert '<script src="panel.js"></script>' in HTML
+    assert "<style>" in HTML and "</style>" in HTML
+    assert "<script>" in HTML and "</script>" in HTML
+    assert '<link rel="stylesheet"' not in HTML
+    assert '<script src=' not in HTML
     assert 'data-theme-choice="dark"' in HTML
     assert 'location.search' in JS
+    assert [path.name for path in (ROOT / "static").iterdir()] == ["index.html"]
+
+
+def test_host_ui_guide_is_short_and_declared():
+    manifest = tomllib.loads((ROOT / "plugin.toml").read_text(encoding="utf-8"))
+    guides = manifest["plugin"]["ui"]["guide"]
+    guide = guides[0]
+    path = ROOT / guide["entry"]
+    text = path.read_text(encoding="utf-8")
+
+    assert guide["id"] == "guide"
+    assert guide["entry"] == "docs/ui/guide.md"
+    assert path.is_file()
+    assert len(text) < 2400
+    assert "快速开始" in text and "常见问题" in text
+    assert manifest["plugin"]["store"]["enabled"] is False
+    assert "neko_danmaku" not in manifest
 
 
 def test_all_static_element_ids_are_unique():
@@ -59,4 +79,3 @@ def test_readme_is_product_presentation_not_changelog():
     assert "![" not in README
     assert "<img" not in README
     assert not (ROOT / "assets").exists()
-    assert not (ROOT / "docs").exists()

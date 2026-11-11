@@ -45,10 +45,11 @@ class OverlayHost:
       3) app.exec() 事件循环常驻; 由 _stop() 经 HTTP /quit 或窗口关闭退出
     """
 
-    def __init__(self, plugin: Any, port: int) -> None:
+    def __init__(self, plugin: Any, port: int, state_path: Path) -> None:
         self.plugin = plugin
         self.log = plugin.logger
         self.port = port
+        self.state_path = Path(state_path)
         self._thread: threading.Thread | None = None
         self._ready = threading.Event()
         self._started = False
@@ -99,7 +100,9 @@ class OverlayHost:
                 for p in self._env_paths():
                     if p not in sys.path:
                         sys.path.insert(0, p)
-                self._load_overlay_app().run_overlay(port=self.port)
+                self._load_overlay_app().run_overlay(
+                    port=self.port, state_path=self.state_path
+                )
             except Exception as exc:  # noqa: BLE001
                 import traceback
                 self.log.error("浮层线程异常: %s\n%s", exc,
@@ -154,7 +157,11 @@ class DanmakuRuntime:
         self.plugin = plugin
         self.log = plugin.logger
         self.cfg = cfg
-        self.host = OverlayHost(plugin, cfg.overlay_port)
+        self.host = OverlayHost(
+            plugin,
+            cfg.overlay_port,
+            Path(self.plugin.data_path("config", "overlay_style.json")),
+        )
         self._bridge_task: asyncio.Task | None = None
         self._bridge_source = None      # 数据源实例 (shutdown 时释放)
         self._bridge_thread: threading.Thread | None = None
@@ -164,13 +171,18 @@ class DanmakuRuntime:
 
     # ---- 游标持久化 (按数据源隔离, 防止 recent_file 旧游标污染 time_index) ----
     def _seen_file(self) -> Path:
-        return _PLUGIN_DIR / "state" / "bridge_cursor.json"
+        return Path(self.plugin.data_path("state", "bridge_cursor.json"))
 
     def _load_seen(self, ds: str | None = None) -> int:
         """读取游标。旧格式 {seen} 视为无效(不跨源复用); 新格式带 source。"""
         ds = ds or self.cfg.data_source
+        path = self._seen_file()
+        if not path.is_file():
+            legacy = _PLUGIN_DIR / "state" / "bridge_cursor.json"
+            if legacy.is_file():
+                path = legacy
         try:
-            with open(self._seen_file(), encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             return 0

@@ -39,13 +39,19 @@ class NekoDanmakuPlugin(NekoPluginBase):
         super().__init__(ctx)
         self.logger = self.enable_file_logging(log_level="INFO")
         self.rt: Any = None
+        from .core.config import ConfigStore
+
+        self._config_store = ConfigStore(self.data_path())
 
     async def _load_config(self) -> dict:
         from .core.config import DanmakuConfig
 
         raw = await self.config.dump()
         section = raw.get(_CONFIG_SECTION, {}) if isinstance(raw, dict) else {}
-        return DanmakuConfig.from_raw(section if isinstance(section, dict) else {})
+        persisted = self._config_store.load(
+            section if isinstance(section, dict) else {}
+        )
+        return DanmakuConfig.from_raw(persisted)
 
     @lifecycle(id="startup")
     async def startup(self, **_) -> Any:
@@ -105,6 +111,8 @@ class NekoDanmakuPlugin(NekoPluginBase):
             return Ok({"running": False, "connected": False})
         try:
             st = await self.rt.overlay_status()
+            st["ui_theme"] = getattr(self.rt.cfg, "ui_theme", "light")
+            st["config_paths"] = self._config_store.paths()
             self.logger.info(
                 "面板轮询: running=%s src=%s wins=%d tgt=%s",
                 st.get("running"), st.get("data_source"),
@@ -238,20 +246,17 @@ class NekoDanmakuPlugin(NekoPluginBase):
         if poll_interval_s is not None:
             patch["poll_interval_s"] = max(0.1, min(float(poll_interval_s), 10.0))
 
-        # 1) 持久化到 plugin.toml 的 [neko_danmaku] 段 (失败不阻塞即时生效)
+        # 1) 持久化到 data/config/source.json
         saved = False
         try:
-            await self.ctx.update_own_config({_CONFIG_SECTION: patch})
+            self._config_store.save(patch)
             saved = True
         except Exception as exc:  # noqa: BLE001
-            self.logger.warning("update_own_config 失败(仍会即时生效): %s", exc)
+            self.logger.warning("保存数据源配置失败(仍会即时生效): %s", exc)
 
         # 2) 立即生效: 重建桥 (runtime.apply_config 检测到 data_source 变化会重建)
         try:
-            raw = await self.config.dump()
-            section = dict((raw or {}).get(_CONFIG_SECTION) or {})
-            section.update(patch)
-            cfg = DanmakuConfig.from_raw(section)
+            cfg = DanmakuConfig.from_raw(self._config_store.load())
             await self.rt.apply_config(cfg.to_dict())
         except Exception as exc:  # noqa: BLE001
             self.logger.warning("数据源即时生效失败: %s", exc)
@@ -291,13 +296,39 @@ class NekoDanmakuPlugin(NekoPluginBase):
                 return Err(SdkError(f"未知样式预设: {name}"))
         saved = False
         try:
-            await self.ctx.update_own_config({_CONFIG_SECTION: {"role_preset": preset}})
+            self._config_store.save({"role_preset": preset})
             saved = True
         except Exception as exc:  # noqa: BLE001
             self.logger.warning("保存角色样式失败(仍会即时生效): %s", exc)
         # 即时生效: role_preset 由 runtime 每条推送时读取
         self.rt.cfg.role_preset = dict(preset)
         return Ok({"ok": True, "saved": saved, "role_preset": preset})
+
+    @plugin_entry(
+        id="save_ui_preferences",
+        name="保存面板偏好",
+        description="持久化面板主题等界面偏好到 data/config/ui.json。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "theme": {"type": "string", "enum": ["light", "dark"]},
+            },
+        },
+        metadata={"agent_hidden": True},
+    )
+    async def entry_save_ui_preferences(self, theme: str = "light", **_) -> Any:
+        normalized = theme if theme in {"light", "dark"} else "light"
+        try:
+            values = self._config_store.save({"ui_theme": normalized})
+        except Exception as exc:  # noqa: BLE001
+            return Err(SdkError(f"保存面板偏好失败: {exc}"))
+        if self.rt:
+            self.rt.cfg.ui_theme = normalized
+        return Ok({
+            "ok": True,
+            "ui_theme": values["ui_theme"],
+            "path": self._config_store.paths_by_category["ui"].as_posix(),
+        })
 
     # ---- 全链路自检: 走真实桥推 2 条测试弹幕 ----
     @plugin_entry(
