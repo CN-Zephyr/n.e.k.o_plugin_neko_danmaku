@@ -56,7 +56,7 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
 def test_readme_is_product_presentation_not_changelog():
     assert "更新日志" not in README
     assert "核心体验" in README
-    assert "docs/assets/panel-overview-light.png" in README
-    assert "docs/assets/panel-appearance-dark.png" in README
-    assert (ROOT / "docs" / "assets" / "panel-overview-light.png").is_file()
-    assert (ROOT / "docs" / "assets" / "panel-appearance-dark.png").is_file()
+    assert "![" not in README
+    assert "<img" not in README
+    assert not (ROOT / "assets").exists()
+    assert not (ROOT / "docs").exists()
