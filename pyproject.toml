@@ -12,6 +12,7 @@ exclude_dirs = [
     ".venv",
     ".pytest_cache",
     ".ruff_cache",
+    "docs",
     "state",
     "tests",
     "_wheels_tmp",

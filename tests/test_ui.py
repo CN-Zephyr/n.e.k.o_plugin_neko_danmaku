@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
 CSS = (ROOT / "static" / "panel.css").read_text(encoding="utf-8")
 JS = (ROOT / "static" / "panel.js").read_text(encoding="utf-8")
+README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_panel_is_split_and_defaults_to_light_theme():
@@ -50,3 +51,12 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
     assert "if (refreshPromise) return refreshPromise;" in JS
     assert "if (!document.hidden) refresh();" in JS
     assert "if (formDirty)" in JS
+
+
+def test_readme_is_product_presentation_not_changelog():
+    assert "更新日志" not in README
+    assert "核心体验" in README
+    assert "docs/assets/panel-overview-light.png" in README
+    assert "docs/assets/panel-appearance-dark.png" in README
+    assert (ROOT / "docs" / "assets" / "panel-overview-light.png").is_file()
+    assert (ROOT / "docs" / "assets" / "panel-appearance-dark.png").is_file()
