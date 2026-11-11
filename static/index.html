@@ -3486,11 +3486,11 @@ function fillFromPreset(name) {
   const map = {
     clean: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 34, shadow: false, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
     master: { color: "#fff6e5", stroke: "#20242c", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    neko: { color: "#9adcff", stroke: "#08243a", width: 3, bg: "light", size: 34, shadow: true, bgColor: "#254f70", bgAlpha: 46, bgRadius: 12 },
+    neko: { color: "#9adcff", stroke: "#08243a", width: 3, bg: "light", size: 34, shadow: true, bgColor: "#47b9ff", bgAlpha: 44, bgRadius: 12 },
     champagne: { color: "#ffd78c", stroke: "#4a2a08", width: 3, bg: "none", size: 36, shadow: true, glow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    softbar: { color: "#ffffff", stroke: "#101018", width: 2.5, bg: "soft", size: 34, shadow: false, bgColor: "#7fa5c4", bgAlpha: 48, bgRadius: 14 },
+    softbar: { color: "#ffffff", stroke: "#101018", width: 2.5, bg: "soft", size: 34, shadow: false, bgColor: "#68c7ea", bgAlpha: 36, bgRadius: 14 },
     pink: { color: "#ff9ad5", stroke: "#3a0a22", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "light", size: 34, shadow: true, bgColor: "#5d537b", bgAlpha: 46, bgRadius: 12 },
+    mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "light", size: 34, shadow: true, bgColor: "#c070e8", bgAlpha: 42, bgRadius: 12 },
   };
   const preset = map[next];
   $("#p-text_color").value = preset.color;
@@ -3657,9 +3657,7 @@ function drawPreviewCanvas(canvas, compact = false) {
   });
 
   if (bg !== "none") {
-    const alpha = bg === "light"
-      ? 46
-      : Number($("#p-bg_alpha").value);
+    const alpha = Number($("#p-bg_alpha").value);
     const radius = Number($("#p-bg_radius").value);
     const boxX = startX - 16;
     const boxY = startY - fontSize * 0.95;

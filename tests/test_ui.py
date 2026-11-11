@@ -80,9 +80,11 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
 
 
 def test_softbar_preset_uses_adaptive_background_color():
-    assert 'bgColor: "#7fa5c4"' in JS
+    assert 'bgColor: "#47b9ff"' in JS
+    assert 'bgColor: "#68c7ea"' in JS
+    assert 'bgColor: "#c070e8"' in JS
     assert 'setRange("bg_alpha", preset.bgAlpha);' in JS
-    assert 'bg === "soft" ? 100' not in JS
+    assert 'const alpha = Number($("#p-bg_alpha").value);' in JS
 
 
 def test_readme_is_product_presentation_not_changelog():

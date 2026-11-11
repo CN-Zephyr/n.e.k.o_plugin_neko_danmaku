@@ -138,7 +138,7 @@ PRESETS: dict[str, dict[str, Any]] = {
     "neko": {
         "text_color": "#a8e2ff", "stroke_color": "#08243a",
         "stroke_width": 3.0, "font_size": 30, "bold": True,
-        "bg": "light", "bg_color": "#254f70", "bg_alpha": 70, "bg_radius": 12,
+        "bg": "light", "bg_color": "#47b9ff", "bg_alpha": 44, "bg_radius": 12,
         "shadow": True, "shadow_blur": 5, "shadow_dy": 2, "shadow_alpha": 140,
         "letter_spacing": 0.5,
     },
@@ -152,7 +152,7 @@ PRESETS: dict[str, dict[str, Any]] = {
     "softbar": {
         "text_color": "#ffffff", "stroke_color": "#101018",
         "stroke_width": 2.5, "font_size": 30, "bold": True,
-        "bg": "soft", "bg_color": "#7fa5c4", "bg_alpha": 48,
+        "bg": "soft", "bg_color": "#68c7ea", "bg_alpha": 36,
         "bg_radius": 14, "shadow": False,
     },
     # 粉色强调
@@ -165,7 +165,7 @@ PRESETS: dict[str, dict[str, Any]] = {
     "mix": {
         "text_color": "#ffffff", "stroke_color": "#101018",
         "stroke_width": 3.0, "font_size": 30, "bold": True,
-        "bg": "light", "bg_color": "#5d537b", "bg_alpha": 58, "bg_radius": 12,
+        "bg": "light", "bg_color": "#c070e8", "bg_alpha": 42, "bg_radius": 12,
         "shadow": True, "shadow_blur": 5, "shadow_dy": 2, "shadow_alpha": 140,
         "letter_spacing": 0.5,
         "color_pool": ["#9adcff", "#ff9ad5", "#ffd78c",

@@ -49,8 +49,8 @@ def test_soft_background_uses_blue_gray_instead_of_black():
     softbar = overlay.PRESETS["softbar"]
 
     assert softbar["bg"] == "soft"
-    assert softbar["bg_color"] == "#7fa5c4"
-    assert softbar["bg_alpha"] == 48
+    assert softbar["bg_color"] == "#68c7ea"
+    assert softbar["bg_alpha"] == 36
 
 
 def test_overlay_style_keeps_valid_customization():
