@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout plugin
         uses: actions/checkout@v4
+        with:
+          path: neko_danmaku
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,7 +40,7 @@ jobs:
       - name: Verify tag and package version
         shell: pwsh
         run: |
-          $version = python -c "import tomllib; print(tomllib.load(open('plugin.toml','rb'))['plugin']['version'])"
+          $version = python -c "import tomllib; print(tomllib.load(open(r'neko_danmaku\plugin.toml','rb'))['plugin']['version'])"
           if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$version") {
             throw "Tag $env:GITHUB_REF_NAME does not match plugin.toml version $version"
           }

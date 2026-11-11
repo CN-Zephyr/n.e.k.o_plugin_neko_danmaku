@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout plugin
         uses: actions/checkout@v4
+        with:
+          path: neko_danmaku
 
       - name: Checkout N.E.K.O build tools
         uses: actions/checkout@v4
@@ -40,15 +42,16 @@ jobs:
 
       - name: Run tests
         shell: pwsh
-        working-directory: tests
+        working-directory: neko_danmaku/tests
         run: |
           python -m pytest . -q -p no:cacheprovider
 
       - name: Run market-pinned Ruff rules
+        working-directory: neko_danmaku
         run: >-
           python -m ruff check --ignore-noqa --isolated
           --no-respect-gitignore --target-version py311 --line-length 120
-          --select E4,E7,E9,F,I --exclude vendor,neko .
+          --select E4,E7,E9,F,I --exclude vendor .
 
       - name: Build plugin package
         shell: pwsh
@@ -56,7 +59,7 @@ jobs:
           Push-Location neko
           try {
             python -m plugin.neko_plugin_cli build `
-              (Join-Path $env:GITHUB_WORKSPACE "") `
+              (Join-Path $env:GITHUB_WORKSPACE "neko_danmaku") `
               --target-dir (Join-Path $env:GITHUB_WORKSPACE "dist")
           } finally {
             Pop-Location
