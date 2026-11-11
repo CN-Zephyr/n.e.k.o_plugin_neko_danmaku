@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+state/
+store.db
+bridge_cursor.json
+overlay_state.json
+_wheels_tmp/
+*.neko-plugin
+*.neko-bundle

@@ -1,0 +1,39 @@
+[project]
+name = "neko_danmaku"
+version = "0.2.0"
+description = "Host chat as on-screen danmaku overlay (Qt + vendor PySide6)."
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = []
+
+[tool.neko.build]
+exclude_dirs = [
+    ".vscode",
+    ".venv",
+    ".pytest_cache",
+    ".ruff_cache",
+    "state",
+    "tests",
+    "_wheels_tmp",
+]
+exclude_files = [
+    ".gitignore",
+    "README.md",
+    "ruff.toml",
+    "LICENSE",
+    "*.neko-plugin",
+    "*.neko-bundle",
+    "fetch_vendor.py",
+    "smoke.py",
+    "harness_runtime.py",
+    "overlay_state.json",
+    "bridge_cursor.json",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = ["E501"]

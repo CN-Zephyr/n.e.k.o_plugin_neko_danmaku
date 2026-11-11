@@ -1,0 +1,47 @@
+[plugin]
+id = "neko_danmaku"
+name = "弹幕猫娘"
+description = "把宿主聊天搬到游戏/窗口：主人说话与 YUI 回应以弹幕飘过目标画面（OBS 式选窗口/显示器），鼠标穿透、样式可配、随聊天时间自然滚动。"
+short_description = "Host chat as on-screen danmaku overlay."
+keywords = ["弹幕", "danmaku", "浮层", "overlay", "聊天", "游戏", "聊天框", "悬浮", "直播", "barrage"]
+version = "0.2.0"
+entry = "plugin.plugins.neko_danmaku:NekoDanmakuPlugin"
+
+[plugin.author]
+name = "N.E.K.O Team"
+
+[plugin.sdk]
+recommended = ">=0.1.0,<0.2.0"
+supported = ">=0.1.0,<0.3.0"
+
+[plugin.i18n]
+default_locale = "zh-CN"
+locales_dir = "i18n"
+
+[plugin_runtime]
+enabled = true
+auto_start = true
+
+[plugin.store]
+enabled = true
+
+[plugin.ui]
+enabled = true
+
+[[plugin.ui.panel]]
+id = "main"
+title = "弹幕猫娘"
+entry = "static/index.html"
+context = "dashboard"
+permissions = ["state:read", "action:call"]
+
+[neko_danmaku]
+enabled = true
+data_source = "sdk"               # sdk(推荐: 宿主 conversations 通道, 含 AI 主动搭话) | time_index | recent_file
+recent_path = ""                  # recent.json 显式路径 (recent_file 用; 留空自动探测)
+db_path = ""                      # time_indexed.db 显式路径 (留空自动探测)
+poll_interval_s = 0.8             # 文件源轮询间隔 / SDK 间隔上限
+sdk_poll_interval_s = 0.3         # SDK 拉取间隔 (拉取式通道, 0.2~0.3 秒接近实时)
+overlay_port = 48777
+auto_start_overlay = true
+role_preset = { human = "master", ai = "mix" }   # 主人/猫娘各自样式；master=暖白无底, mix=随机彩+气泡(面板可切换)

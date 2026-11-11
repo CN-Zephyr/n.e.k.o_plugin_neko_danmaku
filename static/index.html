@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>弹幕猫娘</title>
+  <script>
+    (() => {
+      try {
+        const forced = new URLSearchParams(location.search).get("theme");
+        const saved = forced || localStorage.getItem("neko-danmaku-theme");
+        if (saved === "dark") document.documentElement.dataset.theme = "dark";
+      } catch (_) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+    <span class="grain"></span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar glass">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span class="brand-core">猫</span>
+          <i class="brand-spark"></i>
+        </div>
+        <div class="brand-copy">
+          <strong>弹幕猫娘</strong>
+          <span>DANMAKU COMPANION</span>
+        </div>
+      </header>
+
+      <div class="connection-card">
+        <span class="status-dot" id="dot"></span>
+        <div>
+          <strong id="connectionTitle">正在连接浮层</strong>
+          <span id="statustext" title="等待面板状态">读取目标与宿主会话…</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="弹幕猫娘功能导航">
+        <span class="nav-label">工作区</span>
+        <button class="nav-item is-active" type="button" data-page="overview">
+          <span class="nav-icon">⌂</span><span>总览</span>
+        </button>
+        <button class="nav-item" type="button" data-page="target">
+          <span class="nav-icon">◎</span><span>弹幕目标</span><b class="nav-badge" id="navTargetBadge">未绑定</b>
+        </button>
+        <button class="nav-item" type="button" data-page="appearance">
+          <span class="nav-icon">✦</span><span>外观与排版</span>
+        </button>
+        <span class="nav-label nav-label-spaced">运行</span>
+        <button class="nav-item" type="button" data-page="behavior">
+          <span class="nav-icon">⌁</span><span>聊天来源</span>
+        </button>
+        <button class="nav-item" type="button" data-page="diagnostics">
+          <span class="nav-icon">⌕</span><span>诊断与工具</span>
+        </button>
+      </nav>
+
+      <footer class="sidebar-footer">
+        <div class="mini-status">
+          <span>浮层</span><strong id="sidebarOverlay">检查中</strong>
+        </div>
+        <div class="mini-status">
+          <span>来源</span><strong id="sidebarSource">—</strong>
+        </div>
+        <p><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd> 穿透 / 交互</p>
+      </footer>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="page-heading">
+          <span class="eyebrow">N.E.K.O · LIVE OVERLAY</span>
+          <h1 id="pageTitle">弹幕总览</h1>
+          <p id="pageSubtitle">宿主聊天正在这里变成画面上流动的陪伴。</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="live-pill" id="livePill"><span></span><b>连接中</b></div>
+          <div class="theme-switch" role="group" aria-label="界面主题">
+            <button type="button" data-theme-choice="light" aria-pressed="true" title="白色主题">☀</button>
+            <button type="button" data-theme-choice="dark" aria-pressed="false" title="夜间主题">☾</button>
+          </div>
+          <button class="icon-button" id="btn-refresh" type="button" title="刷新状态" aria-label="刷新状态">
+            <span>↻</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="inline-notice" id="inlineNotice" hidden>
+        <span class="notice-mark">!</span>
+        <div>
+          <strong id="noticeTitle">浮层暂未连接</strong>
+          <p id="noticeText">请确认插件和弹幕浮层已经启动。</p>
+        </div>
+        <button type="button" class="text-button" id="noticeRetry">重试</button>
+      </div>
+
+      <div class="pages">
+        <section class="page is-active" data-page-panel="overview">
+          <div class="hero-card glass">
+            <div class="hero-copy">
+              <span class="hero-kicker"><i></i> 实时陪伴中</span>
+              <h2>让每一句话，<br><em>轻轻掠过游戏画面。</em></h2>
+              <p>主人发言与猫娘回应会按真实聊天节奏进入弹幕轨道。目标、样式和数据源都可在这里即时调整。</p>
+              <div class="hero-actions">
+                <button class="button button-primary" type="button" data-jump="target">选择游戏窗口</button>
+                <button class="button button-soft" type="button" id="quickTest">发送测试弹幕</button>
+              </div>
+              <div class="hero-meta">
+                <span><i class="meta-dot"></i> 鼠标穿透</span>
+                <span><i class="meta-dot"></i> 自动跟随窗口</span>
+                <span><i class="meta-dot"></i> 无边框全屏</span>
+              </div>
+            </div>
+            <div class="hero-stage">
+              <div class="stage-glow"></div>
+              <div class="stage-window">
+                <div class="stage-toolbar"><span></span><span></span><span></span></div>
+                <div class="stage-landscape"></div>
+                <div class="danmaku-line line-a">主人，今晚也一起闯江湖吧</div>
+                <div class="danmaku-line line-b">本喵会一直在这里陪着你喵～</div>
+                <div class="danmaku-line line-c">前方有强敌，先把杀气留好</div>
+                <div class="stage-caption">LIVE OVERLAY PREVIEW</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="stat-card glass">
+              <span class="stat-icon">◉</span>
+              <div><span>浮层状态</span><strong id="statOverlay">检查中</strong></div>
+              <i class="stat-trend" id="statOverlayTone"></i>
+            </article>
+            <article class="stat-card glass">
+              <span class="stat-icon">↗</span>
+              <div><span>聊天来源</span><strong id="statSource">—</strong></div>
+              <i class="stat-trend" id="statSourceTone"></i>
+            </article>
+            <article class="stat-card glass">
+              <span class="stat-icon">◎</span>
+              <div><span>当前目标</span><strong id="statTarget">未绑定</strong></div>
+              <i class="stat-trend" id="statTargetTone"></i>
+            </article>
+            <article class="stat-card glass">
+              <span class="stat-icon">▦</span>
+              <div><span>可跟随窗口</span><strong id="statWindows">0</strong></div>
+              <i class="stat-trend" id="statWindowsTone"></i>
+            </article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">LIVE TYPE</span>
+                  <h3>弹幕预览</h3>
+                </div>
+                <span class="soft-badge">实时样式</span>
+              </header>
+              <div class="preview-shell compact-preview">
+                <canvas id="heroPrev" aria-label="弹幕样式预览"></canvas>
+                <div class="preview-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="preview-note">
+                <span>预览会跟随字号、描边、折行和角色预设变化。</span>
+                <button class="text-button" type="button" data-jump="appearance">调整样式</button>
+              </div>
+            </article>
+
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">CURRENT TARGET</span>
+                  <h3>投送位置</h3>
+                </div>
+                <button class="icon-button small" type="button" data-jump="target" aria-label="打开目标设置">↗</button>
+              </header>
+              <div class="overview-target" id="overviewTarget">
+                <div class="overview-target-icon" id="overviewTargetIcon">◎</div>
+                <div>
+                  <strong id="overviewTargetTitle">还没有选择弹幕目标</strong>
+                  <p id="overviewTargetSub">选择一个显示器或游戏窗口后开始投送。</p>
+                </div>
+              </div>
+              <div class="target-details">
+                <div><span>数据源</span><strong id="overviewSource">—</strong></div>
+                <div><span>SDK 间隔</span><strong id="overviewInterval">—</strong></div>
+                <div><span>遮挡状态</span><strong id="overviewObscured">—</strong></div>
+              </div>
+              <div class="panel-actions">
+                <button class="button button-soft" type="button" id="overviewScreen">覆盖主屏</button>
+                <button class="button button-ghost" type="button" id="overviewTest">自检链路</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="target">
+          <div class="target-bar glass is-empty" id="targetBar">
+            <div class="target-icon" id="tbIcon">◎</div>
+            <div class="target-copy">
+              <span class="panel-kicker">ACTIVE TARGET</span>
+              <strong id="tbTitle">还没有选择弹幕目标</strong>
+              <p id="tbSub">选择一个显示器或游戏窗口，聊天弹幕只会出现在那里。</p>
+            </div>
+            <button class="icon-button small" id="tbClear" type="button" title="切换到主屏" aria-label="清除目标并覆盖主屏">✕</button>
+          </div>
+
+          <div class="target-layout">
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">DISPLAYS</span>
+                  <h3>显示器</h3>
+                </div>
+                <span class="soft-badge" id="displayBadge">0 个</span>
+              </header>
+              <p class="panel-description">让弹幕铺满整块屏幕，适合无边框全屏游戏或直播画面。</p>
+              <div class="display-grid" id="displays"></div>
+            </article>
+
+            <article class="panel glass window-panel">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">WINDOWS</span>
+                  <h3>窗口与游戏</h3>
+                </div>
+                <span class="soft-badge" id="winbadge">0 个</span>
+              </header>
+              <div class="search-box">
+                <span>⌕</span>
+                <input id="windowSearch" type="search" autocomplete="off" placeholder="搜索标题、进程或 exe">
+              </div>
+              <div class="window-list" id="windows"></div>
+              <div class="panel-actions spread">
+                <span class="helper-text">点击进程即可绑定，并自动跟随窗口重建和全屏切换。</span>
+                <button class="button button-primary" id="btn-screen" type="button">覆盖主屏</button>
+              </div>
+            </article>
+          </div>
+          <div class="tip-card glass">
+            <span>提示</span>
+            <p>独占全屏由游戏直接接管显示输出，浮层无法覆盖。请切换为「无边框全屏 / 窗口全屏」。</p>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="appearance">
+          <div class="appearance-layout">
+            <aside class="preview-column">
+              <article class="panel glass sticky-preview">
+                <header class="panel-head">
+                  <div>
+                    <span class="panel-kicker">STYLE PREVIEW</span>
+                    <h3>实时预览</h3>
+                  </div>
+                  <span class="soft-badge">与浮层同步</span>
+                </header>
+                <div class="preview-shell">
+                  <canvas id="prev" aria-label="弹幕样式预览"></canvas>
+                  <div class="preview-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                </div>
+                <label class="preview-input">
+                  <span>预览文字</span>
+                  <input id="prevlabel" class="text-input" value="会吐弹幕的蓝色大肥鱼喵～">
+                </label>
+                <div class="form-status" id="dirtyHint">样式尚未修改</div>
+                <div class="save-dock">
+                  <button class="button button-ghost" id="btn-reset" type="button">恢复干净样式</button>
+                  <button class="button button-primary" id="btn-apply" type="button">保存外观</button>
+                </div>
+              </article>
+            </aside>
+
+            <div class="settings-column">
+              <article class="panel glass">
+                <header class="panel-head">
+                  <div>
+                    <span class="panel-kicker">PRESETS</span>
+                    <h3>风格预设</h3>
+                  </div>
+                  <span class="helper-text">点击即时载入</span>
+                </header>
+                <div class="preset-grid" id="presets"></div>
+              </article>
+
+              <article class="panel glass settings-panel">
+                <header class="panel-head">
+                  <div>
+                    <span class="panel-kicker">TYPOGRAPHY</span>
+                    <h3>文字与描边</h3>
+                  </div>
+                </header>
+                <div class="setting-grid">
+                  <label class="field"><span>字体</span><select id="s-font"></select></label>
+                  <label class="field range-field">
+                    <span>字号 <b id="v-font_size">34</b></span>
+                    <input type="range" id="p-font_size" min="16" max="72" step="1" value="34">
+                  </label>
+                  <label class="field compact-switch"><span>加粗</span>
+                    <i class="switch"><input type="checkbox" id="p-bold" checked><b></b></i>
+                  </label>
+                  <label class="field color-field"><span>文字颜色</span><input type="color" id="p-text_color" value="#ffffff"></label>
+                  <label class="field color-field"><span>描边颜色</span><input type="color" id="p-stroke_color" value="#101018"></label>
+                  <label class="field range-field">
+                    <span>描边宽度 <b id="v-stroke_width">3</b></span>
+                    <input type="range" id="p-stroke_width" min="0" max="10" step=".5" value="3">
+                  </label>
+                </div>
+              </article>
+
+              <article class="panel glass settings-panel">
+                <header class="panel-head">
+                  <div>
+                    <span class="panel-kicker">EFFECTS</span>
+                    <h3>渐变、阴影与辉光</h3>
+                  </div>
+                </header>
+                <div class="effect-block">
+                  <div class="effect-head"><span>渐变填充</span><i class="switch"><input type="checkbox" id="p-grad_on"><b></b></i></div>
+                  <div class="setting-grid effect-body" id="grad-box">
+                    <label class="field color-field"><span>渐变上色</span><input type="color" id="p-grad_top" value="#ffffff"></label>
+                    <label class="field color-field"><span>渐变下色</span><input type="color" id="p-grad_bot" value="#6db3ff"></label>
+                  </div>
+                </div>
+                <div class="effect-block">
+                  <div class="effect-head"><span>文字阴影</span><i class="switch"><input type="checkbox" id="p-shadow_on" checked><b></b></i></div>
+                  <div class="setting-grid effect-body" id="shadow-box">
+                    <label class="field range-field"><span>模糊 <b id="v-shadow_blur">8</b></span><input type="range" id="p-shadow_blur" min="0" max="24" step="1" value="8"></label>
+                    <label class="field range-field"><span>垂直偏移 <b id="v-shadow_dy">4</b></span><input type="range" id="p-shadow_dy" min="-12" max="24" step="1" value="4"></label>
+                    <label class="field range-field"><span>浓度 <b id="v-shadow_alpha">190</b></span><input type="range" id="p-shadow_alpha" min="0" max="255" step="1" value="190"></label>
+                    <label class="field color-field"><span>阴影颜色</span><input type="color" id="p-shadow_color" value="#000000"></label>
+                  </div>
+                </div>
+                <div class="effect-block">
+                  <div class="effect-head"><span>边缘辉光</span><i class="switch"><input type="checkbox" id="p-glow_on"><b></b></i></div>
+                  <div class="setting-grid effect-body" id="glow-box">
+                    <label class="field range-field"><span>强度 <b id="v-glow_blur">14</b></span><input type="range" id="p-glow_blur" min="2" max="30" step="1" value="14"></label>
+                    <label class="field color-field"><span>辉光颜色</span><input type="color" id="p-glow_color" value="#ffd78c"></label>
+                  </div>
+                </div>
+                <div class="effect-block">
+                  <div class="effect-head"><span>文字底条</span>
+                    <select id="p-bg" class="compact-select">
+                      <option value="none">无背景</option>
+                      <option value="light">极淡玻璃</option>
+                      <option value="soft">柔和气泡</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                  </div>
+                  <div class="setting-grid effect-body" id="bg-box">
+                    <label class="field color-field"><span>底条颜色</span><input type="color" id="p-bg_color" value="#0a0a14"></label>
+                    <label class="field range-field"><span>透明度 <b id="v-bg_alpha">80</b></span><input type="range" id="p-bg_alpha" min="10" max="220" step="1" value="80"></label>
+                    <label class="field range-field"><span>圆角 <b id="v-bg_radius">10</b></span><input type="range" id="p-bg_radius" min="0" max="24" step="1" value="10"></label>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel glass settings-panel">
+                <header class="panel-head">
+                  <div>
+                    <span class="panel-kicker">LAYOUT</span>
+                    <h3>区域、密度与排版</h3>
+                  </div>
+                </header>
+                <div class="setting-grid">
+                  <label class="field"><span>弹幕区域</span><select id="p-area"><option value="top">顶部</option><option value="center">居中</option><option value="bottom">底部</option></select></label>
+                  <label class="field range-field"><span>区域偏移 <b id="v-area_offset">0</b></span><input type="range" id="p-area_offset" min="-200" max="400" step="10" value="0"></label>
+                  <label class="field range-field"><span>同屏上限 <b id="v-max_items">42</b></span><input type="range" id="p-max_items" min="10" max="90" step="2" value="42"></label>
+                  <label class="field range-field"><span>淡入时长 <b id="v-fade_in">130ms</b></span><input type="range" id="p-fade_in" min="0" max="400" step="10" value="130"></label>
+                  <label class="field compact-switch"><span>自动折行</span><i class="switch"><input type="checkbox" id="p-wrap" checked><b></b></i></label>
+                  <label class="field range-field"><span>最多行数 <b id="v-max_lines">3 行</b></span><input type="range" id="p-max_lines" min="1" max="5" step="1" value="3"></label>
+                  <label class="field compact-switch"><span>字号跟随屏宽</span><i class="switch"><input type="checkbox" id="p-auto_scale" checked><b></b></i></label>
+                  <label class="field range-field"><span>行距 <b id="v-line_spacing">1.12</b></span><input type="range" id="p-line_spacing" min="100" max="180" step="2" value="112"></label>
+                  <label class="field range-field"><span>字距 <b id="v-letter_spacing">0</b></span><input type="range" id="p-letter_spacing" min="0" max="8" step="1" value="0"></label>
+                  <label class="field"><span>主人样式</span><select id="r-human"><option value="master">master · 暖白</option><option value="clean">clean · 纯白</option><option value="champagne">champagne · 香槟</option><option value="pink">pink · 粉</option><option value="neko">neko · 蓝</option><option value="mix">mix · 随机彩</option><option value="softbar">softbar · 深底</option></select></label>
+                  <label class="field"><span>猫娘样式</span><select id="r-ai"><option value="mix">mix · 随机彩+气泡</option><option value="neko">neko · 蓝+气泡</option><option value="pink">pink · 粉</option><option value="champagne">champagne · 香槟</option><option value="clean">clean · 纯白</option><option value="master">master · 暖白</option><option value="softbar">softbar · 深底</option></select></label>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="behavior">
+          <div class="behavior-grid">
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">CHAT SOURCE</span>
+                  <h3>聊天数据源</h3>
+                </div>
+                <span class="soft-badge">即时生效</span>
+              </header>
+              <p class="panel-description">优先使用宿主 conversations 通道，可同时捕获主人发言、猫娘回复和主动搭话。</p>
+              <label class="field">
+                <span>来源</span>
+                <select id="g-source">
+                  <option value="sdk">SDK conversations · 完整聊天（推荐）</option>
+                  <option value="time_index">time_index · 仅用户回合</option>
+                  <option value="recent_file">recent.json · 旧版兼容</option>
+                </select>
+              </label>
+              <label class="field range-field large-range">
+                <span>SDK 拉取间隔 <b id="v-sdkpoll">0.30s</b></span>
+                <input type="range" id="g-sdkpoll" min="10" max="100" step="5" value="30">
+              </label>
+              <div class="source-cards">
+                <div><i class="source-dot source-sdk"></i><strong>SDK</strong><span>人类 + 猫娘 + 主动搭话</span></div>
+                <div><i class="source-dot source-db"></i><strong>time_index</strong><span>只读取用户回合</span></div>
+              </div>
+            </article>
+
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">PACING</span>
+                  <h3>节奏与不透明度</h3>
+                </div>
+              </header>
+              <label class="field range-field large-range"><span>浮层不透明度 <b id="v-opacity">100%</b></span><input type="range" id="p-opacity" min="5" max="100" value="100"></label>
+              <label class="field range-field large-range"><span>弹幕速度 <b id="v-speed">150</b></span><input type="range" id="p-speed" min="60" max="400" step="5" value="150"></label>
+              <div class="pacing-scale"><span>舒缓</span><i></i><span>快速</span></div>
+              <div class="panel-actions">
+                <button class="button button-primary" type="button" id="applyBehavior">应用节奏设置</button>
+                <button class="button button-soft" type="button" id="selftestBehavior">测试完整链路</button>
+              </div>
+            </article>
+
+            <article class="panel glass behavior-wide">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">ROLE IDENTITY</span>
+                  <h3>主人与猫娘的视觉身份</h3>
+                </div>
+              </header>
+              <div class="role-grid">
+                <div class="role-preview master-role"><span>主人</span><strong>暖白 · 清晰 · 轻阴影</strong><p>适合高频聊天，不抢游戏画面。</p></div>
+                <div class="role-connector"><i></i><b>VS</b><i></i></div>
+                <div class="role-preview ai-role"><span>猫娘</span><strong>彩色 · 气泡 · 活跃</strong><p>与主人一眼区分，更像陪伴弹幕。</p></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="diagnostics">
+          <div class="diagnostic-grid">
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">HEALTH</span>
+                  <h3>运行状态</h3>
+                </div>
+                <button class="icon-button small" id="btn-refresh-diag" type="button" title="重新检查">↻</button>
+              </header>
+              <div class="health-list">
+                <div><span>浮层连接</span><strong id="diagOverlay">检查中</strong></div>
+                <div><span>实际数据源</span><strong id="diagSource">—</strong></div>
+                <div><span>目标窗口</span><strong id="diagTarget">—</strong></div>
+                <div><span>当前同屏</span><strong id="diagItems">—</strong></div>
+                <div><span>回收计数</span><strong id="diagDropped">—</strong></div>
+              </div>
+              <details class="raw-diagnostics">
+                <summary>技术诊断信息</summary>
+                <pre id="diag">等待面板状态…</pre>
+              </details>
+            </article>
+
+            <article class="panel glass">
+              <header class="panel-head">
+                <div>
+                  <span class="panel-kicker">TOOLS</span>
+                  <h3>测试与恢复</h3>
+                </div>
+              </header>
+              <p class="panel-description">测试会经过真实数据桥和浮层，而不是只播放本地动画。</p>
+              <div class="tool-list">
+                <button type="button" class="tool-action" id="btn-selftest"><span>测试完整链路<small>推两条主人 / 猫娘弹幕</small></span><b>→</b></button>
+                <button type="button" class="tool-action" data-jump="target"><span>重新绑定目标<small>从显示器或窗口列表选择</small></span><b>→</b></button>
+                <button type="button" class="tool-action" id="btn-reset-diag"><span>恢复默认外观<small>回到干净、稳定的初始样式</small></span><b>→</b></button>
+              </div>
+            </article>
+          </div>
+
+          <div class="hotkey-strip glass">
+            <div><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd><span>穿透 / 交互</span></div>
+            <div><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>F5</kbd><span>演示弹幕</span></div>
+            <div><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>X</kbd><span>退出浮层</span></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-root" id="toastBox" aria-live="polite"></div>
+  <script src="panel.js"></script>
+</body>
+</html>
