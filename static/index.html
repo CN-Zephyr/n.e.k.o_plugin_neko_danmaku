@@ -136,8 +136,10 @@ summary:focus-visible {
   position: absolute;
   display: block;
   border-radius: 999px;
+  filter: blur(8px);
   opacity: 0.72;
-  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: drift 20s var(--ease) infinite alternate;
 }
 
 .orb-a {
@@ -158,6 +160,8 @@ summary:focus-visible {
   min-width: 340px;
   min-height: 340px;
   background: radial-gradient(circle at 50% 44%, rgba(247, 147, 188, 0.28), rgba(247, 147, 188, 0));
+  animation-delay: -7s;
+  animation-duration: 25s;
 }
 
 .orb-c {
@@ -168,10 +172,20 @@ summary:focus-visible {
   min-width: 240px;
   min-height: 240px;
   background: radial-gradient(circle, rgba(105, 221, 202, 0.22), rgba(105, 221, 202, 0));
+  animation-delay: -12s;
 }
 
 .grain {
-  display: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.23'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+@keyframes drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(0.96); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.06); }
 }
 
 .app-shell {
@@ -182,14 +196,13 @@ summary:focus-visible {
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow), var(--inner-glow);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
 }
 
 .sidebar,
 .hero-card {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  will-change: backdrop-filter;
 }
 
 .sidebar {
@@ -547,7 +560,7 @@ kbd {
   border-radius: 99px;
   background: var(--surface);
   box-shadow: var(--inner-glow);
-  backdrop-filter: none;
+  backdrop-filter: blur(18px);
 }
 
 .live-pill span {
@@ -856,6 +869,7 @@ kbd {
   inset: 10% 4% 2%;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(64, 158, 255, 0.2), transparent 67%);
+  filter: blur(18px);
 }
 
 .stage-window {
@@ -867,7 +881,7 @@ kbd {
   border-radius: 19px;
   background: linear-gradient(160deg, #d8efff, #a7cdec 48%, #e6c9dc);
   box-shadow: 0 30px 70px rgba(44, 91, 143, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transform: none;
+  transform: perspective(1000px) rotateX(2deg) rotateY(-4deg);
 }
 
 :root[data-theme="dark"] .stage-window {
@@ -910,6 +924,7 @@ kbd {
   height: 52px;
   border-radius: 50% 50% 20% 20%;
   background: rgba(255, 255, 255, 0.3);
+  filter: blur(2px);
 }
 
 .danmaku-line {
@@ -923,15 +938,22 @@ kbd {
   color: #fff;
   background: rgba(20, 38, 63, 0.2);
   box-shadow: 0 4px 15px rgba(21, 53, 86, 0.16);
-  backdrop-filter: none;
+  backdrop-filter: blur(7px);
   font-size: clamp(8px, 1vw, 12px);
   font-weight: 680;
   white-space: nowrap;
+  will-change: transform;
+  animation: float-line 8s linear infinite;
 }
 
-.line-a { top: 30%; left: 10%; }
-.line-b { top: 49%; left: 29%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); }
-.line-c { top: 67%; left: 5%; color: #fff8df; background: rgba(108, 79, 30, 0.2); }
+.line-a { top: 30%; left: 10%; animation-delay: -2s; }
+.line-b { top: 49%; left: 29%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); animation-delay: -5s; }
+.line-c { top: 67%; left: 5%; color: #fff8df; background: rgba(108, 79, 30, 0.2); animation-delay: -7s; }
+
+@keyframes float-line {
+  from { transform: translateX(-45%); }
+  to { transform: translateX(24%); }
+}
 
 .stage-caption {
   position: absolute;
@@ -1820,6 +1842,7 @@ kbd {
   height: 140px;
   border-radius: 50%;
   background: var(--primary-soft);
+  filter: blur(8px);
 }
 
 .ai-role::after {
@@ -2031,7 +2054,7 @@ kbd {
   color: var(--ink);
   background: var(--surface-strong);
   box-shadow: var(--shadow);
-  backdrop-filter: none;
+  backdrop-filter: blur(12px) saturate(140%);
   font-size: 10px;
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
@@ -2085,11 +2108,6 @@ kbd {
 
 @media (max-width: 940px) {
   :root { --sidebar-width: 76px; }
-  .glass {
-    background: var(--surface-strong);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
   .brand {
     justify-content: center;
     padding-inline: 10px;
@@ -2144,9 +2162,6 @@ kbd {
 
 @media (max-width: 680px) {
   :root { --sidebar-width: 0px; }
-  .ambient {
-    display: none;
-  }
   body {
     padding-bottom: 74px;
   }
