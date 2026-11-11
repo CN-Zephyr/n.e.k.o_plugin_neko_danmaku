@@ -136,7 +136,6 @@ summary:focus-visible {
   position: absolute;
   display: block;
   border-radius: 999px;
-  filter: blur(8px);
   opacity: 0.72;
   transform: translate3d(0, 0, 0);
 }
@@ -172,11 +171,7 @@ summary:focus-visible {
 }
 
 .grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.14;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.23'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
+  display: none;
 }
 
 .app-shell {
@@ -193,8 +188,8 @@ summary:focus-visible {
 
 .sidebar,
 .hero-card {
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .sidebar {
@@ -552,7 +547,7 @@ kbd {
   border-radius: 99px;
   background: var(--surface);
   box-shadow: var(--inner-glow);
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
 }
 
 .live-pill span {
@@ -861,7 +856,6 @@ kbd {
   inset: 10% 4% 2%;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(64, 158, 255, 0.2), transparent 67%);
-  filter: blur(18px);
 }
 
 .stage-window {
@@ -873,7 +867,7 @@ kbd {
   border-radius: 19px;
   background: linear-gradient(160deg, #d8efff, #a7cdec 48%, #e6c9dc);
   box-shadow: 0 30px 70px rgba(44, 91, 143, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transform: perspective(1000px) rotateX(2deg) rotateY(-4deg);
+  transform: none;
 }
 
 :root[data-theme="dark"] .stage-window {
@@ -916,7 +910,6 @@ kbd {
   height: 52px;
   border-radius: 50% 50% 20% 20%;
   background: rgba(255, 255, 255, 0.3);
-  filter: blur(2px);
 }
 
 .danmaku-line {
@@ -930,7 +923,7 @@ kbd {
   color: #fff;
   background: rgba(20, 38, 63, 0.2);
   box-shadow: 0 4px 15px rgba(21, 53, 86, 0.16);
-  backdrop-filter: blur(7px);
+  backdrop-filter: none;
   font-size: clamp(8px, 1vw, 12px);
   font-weight: 680;
   white-space: nowrap;
@@ -1827,7 +1820,6 @@ kbd {
   height: 140px;
   border-radius: 50%;
   background: var(--primary-soft);
-  filter: blur(8px);
 }
 
 .ai-role::after {
@@ -2039,7 +2031,7 @@ kbd {
   color: var(--ink);
   background: var(--surface-strong);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: none;
   font-size: 10px;
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
@@ -2781,7 +2773,7 @@ const PLUGIN_ID = "neko_danmaku";
 const RUNS_URL = "/runs";
 const ENTRY_POLL_MS = 280;
 const DEFAULT_ENTRY_TIMEOUT_MS = 9000;
-const STATUS_REFRESH_MS = 4000;
+const STATUS_REFRESH_MS = 6000;
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -2798,6 +2790,7 @@ let refreshPromise = null;
 let formDirty = false;
 let styleLoaded = false;
 let lastStatusAt = 0;
+let lastRenderSignature = "";
 const entryDiagnostics = [];
 
 const PAGE_META = {
@@ -3153,6 +3146,25 @@ function renderState() {
   const targetLabel = findTargetLabel(target);
   const displayCount = (overlay.displays || []).length;
   const windowsCount = state.processes.length;
+  const signature = JSON.stringify([
+    state.running,
+    source,
+    target,
+    overlay.displays || [],
+    overlay.obscured,
+    state.processes,
+  ]);
+
+  const updateMetrics = () => {
+    $("#diagFps").textContent = overlay.fps == null
+      ? "—"
+      : `${Number(overlay.fps).toFixed(1)} FPS · ${Number(overlay.tick_ms || 0).toFixed(2)} ms`;
+  };
+  if (signature === lastRenderSignature) {
+    updateMetrics();
+    return;
+  }
+  lastRenderSignature = signature;
 
   $("#statOverlay").textContent = state.running ? "运行中" : "未连接";
   setTone($("#statOverlayTone"), state.running ? "good" : "bad");
@@ -3195,9 +3207,7 @@ function renderState() {
   $("#diagTarget").textContent = targetLabel.title;
   $("#diagItems").textContent = overlay.items == null ? "—" : `${overlay.entered || 0} / ${overlay.items}`;
   $("#diagDropped").textContent = overlay.dropped == null ? "0" : String(overlay.dropped);
-  $("#diagFps").textContent = overlay.fps == null
-    ? "—"
-    : `${Number(overlay.fps).toFixed(1)} FPS · ${Number(overlay.tick_ms || 0).toFixed(2)} ms`;
+  updateMetrics();
   $("#diagConfigDir").textContent = status.config_paths?.config_dir || "data/config";
 
   renderTargetBar(target, overlay);
