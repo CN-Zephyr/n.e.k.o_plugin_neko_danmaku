@@ -112,6 +112,15 @@ def test_plugin_runtime_modules_compile():
         ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
 
+def test_overlay_uses_incremental_paint_and_throttled_window_probes():
+    source = (ROOT / "overlay" / "app.py").read_text(encoding="utf-8")
+    assert "QRegion()" in source
+    assert "self.update(region)" in source
+    assert "PROCESS_LOOKUP_TTL_S" in source
+    assert "OBSCURE_CHECK_TTL_S" in source
+    assert "self._apply_passthrough()" in source
+
+
 def test_config_is_persisted_under_categorized_data_files():
     config_module = _load_config_module()
     with tempfile.TemporaryDirectory() as temporary:

@@ -138,7 +138,7 @@ summary:focus-visible {
   border-radius: 999px;
   filter: blur(8px);
   opacity: 0.72;
-  animation: drift 20s var(--ease) infinite alternate;
+  transform: translate3d(0, 0, 0);
 }
 
 .orb-a {
@@ -159,8 +159,6 @@ summary:focus-visible {
   min-width: 340px;
   min-height: 340px;
   background: radial-gradient(circle at 50% 44%, rgba(247, 147, 188, 0.28), rgba(247, 147, 188, 0));
-  animation-delay: -7s;
-  animation-duration: 25s;
 }
 
 .orb-c {
@@ -171,7 +169,6 @@ summary:focus-visible {
   min-width: 240px;
   min-height: 240px;
   background: radial-gradient(circle, rgba(105, 221, 202, 0.22), rgba(105, 221, 202, 0));
-  animation-delay: -12s;
 }
 
 .grain {
@@ -182,11 +179,6 @@ summary:focus-visible {
   mix-blend-mode: soft-light;
 }
 
-@keyframes drift {
-  from { transform: translate3d(-2%, -1%, 0) scale(0.96); }
-  to { transform: translate3d(4%, 3%, 0) scale(1.06); }
-}
-
 .app-shell {
   min-height: 100vh;
 }
@@ -195,8 +187,14 @@ summary:focus-visible {
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow), var(--inner-glow);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sidebar,
+.hero-card {
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
 .sidebar {
@@ -936,17 +934,11 @@ kbd {
   font-size: clamp(8px, 1vw, 12px);
   font-weight: 680;
   white-space: nowrap;
-  animation: float-line 8s linear infinite;
 }
 
-.line-a { top: 30%; left: 10%; animation-delay: -2s; }
-.line-b { top: 49%; left: 29%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); animation-delay: -5s; }
-.line-c { top: 67%; left: 5%; color: #fff8df; background: rgba(108, 79, 30, 0.2); animation-delay: -7s; }
-
-@keyframes float-line {
-  from { transform: translateX(-45%); }
-  to { transform: translateX(24%); }
-}
+.line-a { top: 30%; left: 10%; }
+.line-b { top: 49%; left: 29%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); }
+.line-c { top: 67%; left: 5%; color: #fff8df; background: rgba(108, 79, 30, 0.2); }
 
 .stage-caption {
   position: absolute;
@@ -2047,7 +2039,7 @@ kbd {
   color: var(--ink);
   background: var(--surface-strong);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(140%);
   font-size: 10px;
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
@@ -2101,6 +2093,11 @@ kbd {
 
 @media (max-width: 940px) {
   :root { --sidebar-width: 76px; }
+  .glass {
+    background: var(--surface-strong);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
   .brand {
     justify-content: center;
     padding-inline: 10px;
@@ -2155,6 +2152,9 @@ kbd {
 
 @media (max-width: 680px) {
   :root { --sidebar-width: 0px; }
+  .ambient {
+    display: none;
+  }
   body {
     padding-bottom: 74px;
   }
@@ -2738,6 +2738,7 @@ kbd {
                 <div><span>目标窗口</span><strong id="diagTarget">—</strong></div>
                 <div><span>当前同屏</span><strong id="diagItems">—</strong></div>
                 <div><span>回收计数</span><strong id="diagDropped">—</strong></div>
+                <div><span>实时帧率</span><strong id="diagFps">—</strong></div>
                 <div><span>配置目录</span><strong id="diagConfigDir">—</strong></div>
               </div>
               <details class="raw-diagnostics">
@@ -3194,6 +3195,9 @@ function renderState() {
   $("#diagTarget").textContent = targetLabel.title;
   $("#diagItems").textContent = overlay.items == null ? "—" : `${overlay.entered || 0} / ${overlay.items}`;
   $("#diagDropped").textContent = overlay.dropped == null ? "0" : String(overlay.dropped);
+  $("#diagFps").textContent = overlay.fps == null
+    ? "—"
+    : `${Number(overlay.fps).toFixed(1)} FPS · ${Number(overlay.tick_ms || 0).toFixed(2)} ms`;
   $("#diagConfigDir").textContent = status.config_paths?.config_dir || "data/config";
 
   renderTargetBar(target, overlay);

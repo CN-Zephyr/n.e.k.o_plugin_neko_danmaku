@@ -89,6 +89,18 @@ def test_overlay_paint_path_accepts_sanitized_runtime_config(tmp_path):
         assert state_path.is_file()
         persisted = json.loads(state_path.read_text(encoding="utf-8"))
         assert persisted["style"]["max_items"] == 200
+        window._target = {"kind": "screen"}
+        window._obscured = False
+        assert window.push("增量重绘测试", window.style)
+        item = window._items[0]
+        item.entered = True
+        item.lane = 0
+        item.x = 100.0
+        item.y = 20.0
+        window._on_tick()
+        app.processEvents()
+        assert window._timer.interval() == overlay.FRAME_INTERVAL_MS
+        assert window._tick_ms >= 0.0
     finally:
         try:
             window._http.shutdown()

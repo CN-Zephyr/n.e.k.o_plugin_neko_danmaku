@@ -59,11 +59,13 @@ def test_navigation_pages_match_panel_sections():
 
 
 def test_liquid_glass_and_responsive_layout_contract():
-    assert "backdrop-filter: blur(30px) saturate(150%)" in CSS
+    assert "backdrop-filter: blur(14px) saturate(130%)" in CSS
+    assert "backdrop-filter: none" in CSS
     assert '[data-theme="dark"]' in CSS
     assert "@media (max-width: 680px)" in CSS
     assert "@media (prefers-reduced-motion: reduce)" in CSS
-    assert "animation: drift" in CSS
+    assert "animation: drift" not in CSS
+    assert "animation: float-line" not in CSS
 
 
 def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():

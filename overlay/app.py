@@ -32,6 +32,8 @@ from PySide6.QtGui import (
     QPainter,
     QPainterPath,
     QPainterPathStroker,
+    QPixmap,
+    QRegion,
 )
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -63,12 +65,13 @@ def _set_passthrough_native(win, on: bool) -> None:
         GWL_EXSTYLE = -20
         WS_EX_TRANSPARENT = 0x00000020
         WS_EX_LAYERED = 0x00080000
+        WS_EX_NOACTIVATE = 0x08000000
         ex = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
         if on:
             ex |= WS_EX_TRANSPARENT
         else:
             ex &= ~WS_EX_TRANSPARENT
-        ex |= WS_EX_LAYERED
+        ex |= WS_EX_LAYERED | WS_EX_NOACTIVATE
         user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex)
         # 强制重绘 (Qt 透明层需刷新才生效)
         user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
@@ -101,6 +104,9 @@ WINDOW_STATE_FILE = "overlay_state.json"
 DEFAULT_FONT_FAMILY = "Microsoft YaHei UI"
 SPAWN_INTERVAL = 0.07        # 两条弹幕最小入场间隔(秒): 按时间节奏逐条入场
 COLLIDE_GAP = 24.0           # 同轨道弹幕之间最小间距(px), 防碰撞缓冲
+FRAME_INTERVAL_MS = 16       # 绘制帧间隔
+PROCESS_LOOKUP_TTL_S = 0.75  # 按进程找主窗口的全量枚举频率
+OBSCURE_CHECK_TTL_S = 0.5    # 遮挡检测频率
 
 # ── 视觉观感参数 (0.2.x 起) ─────────────────────────────
 FADE_IN_MS = 130             # 入场淡入时长
@@ -326,6 +332,12 @@ class DanmakuOverlay(QWidget):
         # 交互超时自动回穿透 (秒; 0=手动保持)
         self._interact_timeout_s = 6.0
         self._last_activity = 0.0
+        self._last_process_lookup = 0.0
+        self._last_obscure_check = 0.0
+        self._fps = 0.0
+        self._tick_ms = 0.0
+        self._fps_frames = 0
+        self._fps_started = time.perf_counter()
 
         self._load_state()
         self.style = sanitize_style(self.style)
@@ -339,18 +351,19 @@ class DanmakuOverlay(QWidget):
         self._start_http_server()
 
         self._timer = QTimer(self)
+        self._timer.setTimerType(Qt.PreciseTimer)
         self._timer.timeout.connect(self._on_tick)
-        self._timer.start(16)
+        self._timer.start(FRAME_INTERVAL_MS)
 
         self._follow_timer = QTimer(self)      # 目标跟随 (窗口移动/缩放自动贴合)
         self._follow_timer.timeout.connect(self._follow_once)
-        self._follow_timer.start(120)   # 高频跟随: 窗口拖动也及时贴合
+        self._follow_timer.start(100)   # 窗口 rect 高频读取; 进程枚举另做节流
 
         # 原生置顶保持: 每 500ms 强制 HWND_TOPMOST, 保证弹幕盖在目标之上
         # (抗宿主前端/其它置顶窗口; 独占全屏游戏仍受 Windows 限制需无边框全屏)
         self._top_timer = QTimer(self)
         self._top_timer.timeout.connect(lambda: _keep_topmost(self))
-        self._top_timer.start(500)
+        self._top_timer.start(1000)
 
         self._demo_seq = 0
 
@@ -441,6 +454,8 @@ class DanmakuOverlay(QWidget):
                                           "dropped": int(getattr(win, "_dropped", 0)),
                                           "items": len(win._items),
                                           "entered": sum(1 for d in win._items if d.entered),
+                                          "fps": round(float(getattr(win, "_fps", 0.0)), 1),
+                                          "tick_ms": round(float(getattr(win, "_tick_ms", 0.0)), 2),
                                           "area": win._area,
                                           "area_offset": win._area_offset,
                                           "tracks": win._max_tracks()})
@@ -641,9 +656,12 @@ class DanmakuOverlay(QWidget):
         self._target_hwnd = None
         self._target_pid = None
         self._obscured = False
+        self._last_obscure_check = 0.0
+        self._last_process_lookup = 0.0
         self._pending_spec = None      # 绑定意图 (目标窗口未就绪时用于重试)
         self.show()
         self.raise_()
+        self._apply_passthrough()
         _keep_topmost(self)
         if kind == "screen":
             self._target = {"kind": "screen"}
@@ -672,6 +690,7 @@ class DanmakuOverlay(QWidget):
                 self._target = {"kind": "process", "pid": pid, "mode": mode}
                 self._target_pid = pid
                 self._target_hwnd = hwnd
+                self._last_process_lookup = time.perf_counter()
                 x, y, w, h = rect
                 lx, ly, lw, lh = self._to_logical(x, y, w, h)
                 self.setGeometry(lx, ly, lw, lh)
@@ -700,12 +719,17 @@ class DanmakuOverlay(QWidget):
         self._reflow_all()
         self.stateChanged.emit(f"target={self._target}")
 
-    def _update_obscured(self, hwnd: int | None) -> bool:
+    def _update_obscured(self, hwnd: int | None, *, force: bool = False) -> bool:
         """检测目标是否被遮挡/最小化; 变化时 hide/show 并返回当前是否遮挡。
 
         遮挡 (被大窗口盖住/最小化/消失) → 隐藏浮层并清空已有弹幕;
         恢复可见 → 重新显示, 之后的弹幕照常播。
         """
+        now = time.perf_counter()
+        if (not force and hwnd is not None
+                and now - self._last_obscure_check < OBSCURE_CHECK_TTL_S):
+            return self._obscured
+        self._last_obscure_check = now
         if not _wt or hwnd is None:
             was = self._obscured
             self._obscured = True
@@ -719,6 +743,7 @@ class DanmakuOverlay(QWidget):
             self.hide()
         elif not obscured and self._obscured:
             self.show()
+            self._apply_passthrough()
             _keep_topmost(self)
         self._obscured = obscured
         return obscured
@@ -735,9 +760,15 @@ class DanmakuOverlay(QWidget):
         # kind=process: 动态解析 pid 当前主窗口 (窗口重建自动换新 hwnd)
         if self._target and self._target.get("kind") == "process":
             pid = int(self._target.get("pid", 0))
-            hwnd = _wt.get_pid_main_window(pid) if pid else None
+            now = time.perf_counter()
+            hwnd = self._target_hwnd
+            if (not hwnd
+                    or now - self._last_process_lookup >= PROCESS_LOOKUP_TTL_S):
+                hwnd = _wt.get_pid_main_window(pid) if pid else None
+                self._last_process_lookup = now
             if hwnd is None or hwnd != self._target_hwnd:
                 self._target_hwnd = hwnd
+                self._last_obscure_check = 0.0
                 if hwnd is None:
                     # 进程暂无窗口 (刚启动/最小化) → 遮挡暂停
                     self._update_obscured(None)
@@ -823,16 +854,18 @@ class DanmakuOverlay(QWidget):
         return True
 
     def clear(self) -> None:
+        region = self._visible_region()
         self._items.clear()
-        self.update()
+        if not region.isEmpty():
+            self.update(region)
 
     def toggle_pause(self) -> None:
         self._paused = not self._paused
         self.stateChanged.emit("paused" if self._paused else "resumed")
 
     # ── 渲染引擎 (离屏精灵, 样式全能力) ────────────────────
-    def _render_sprite(self, text: str, st: dict) -> "QImage":
-        """把一条弹幕按 style 预渲染成 RGBA QImage (含描边/阴影/辉光/渐变/底条)。"""
+    def _render_sprite(self, text: str, st: dict) -> "QPixmap":
+        """把一条弹幕预渲染成显示优化的 QPixmap。"""
         from PySide6.QtCore import QPointF
 
         font = self._resolve_font_text(st)
@@ -926,7 +959,7 @@ class DanmakuOverlay(QWidget):
                 p.fillPath(outline, stroke_col)
             p.fillPath(path, fill_brush)
         p.end()
-        return img
+        return QPixmap.fromImage(img)
 
     @staticmethod
     def _layered_halo(p: QPainter, path: "QPainterPath", radius: float,
@@ -1037,9 +1070,14 @@ class DanmakuOverlay(QWidget):
 
     def _reflow_y(self) -> None:
         """按当前轨道高度重排已入场条目: 多行条目出现/消失时也不会压线。"""
+        heights = self._lane_heights()
+        lane_y = [self._area_y0()]
+        for height in heights:
+            lane_y.append(lane_y[-1] + height + TRACK_GAP)
         for d in self._items:
             if d.entered and d.lane is not None:
-                d.y = self._lane_y(d.lane) + float(getattr(d, "y_jitter", 0.0) or 0.0)
+                index = min(max(int(d.lane), 0), len(lane_y) - 1)
+                d.y = lane_y[index] + float(getattr(d, "y_jitter", 0.0) or 0.0)
 
     def _track_pitch(self) -> float:
         """典型轨道间距(状态展示用): 基础高度 + 间距。"""
@@ -1076,9 +1114,18 @@ class DanmakuOverlay(QWidget):
         return w, h
 
     def _on_tick(self) -> None:
+        tick_started = time.perf_counter()
         now = time.time()
+        if not self._items:
+            self._prev_tick = now
+            self._record_tick_metrics(tick_started, painted=False)
+            return
         scr_w = self.width()
         entry_x = float(scr_w + SCREEN_MARGIN_RIGHT)
+        region = QRegion()
+        if not self._paused:
+            for d in self._items:
+                region = self._with_item_region(region, d)
 
         # 入场节流: 距上次入场未满 SPAWN_INTERVAL 则本帧一条都不放
         last = getattr(self, "_last_spawn_ts", 0.0)
@@ -1098,6 +1145,7 @@ class DanmakuOverlay(QWidget):
                     d.lane = lane
                     d.entered = True
                     self._reflow_y()    # 按各轨实际高度落位(多行条目也不会压线)
+                    region = self._with_item_region(region, d)
                     onscreen += 1
                     self._last_spawn_ts = now
                     break   # 每帧至多放一条 → 时间上均匀逐条入场
@@ -1116,11 +1164,14 @@ class DanmakuOverlay(QWidget):
             for d in self._items:
                 if d.entered:
                     d.x -= d.speed * dt
+                    region = self._with_item_region(region, d)
                 if not d.entered or d.x + d.w + 40 > 0:
                     alive.append(d)   # 未入场继续等; 入场未出屏保留
             self._items = alive
-        self._prev_tick = now
-        self.update()
+        painted = not region.isEmpty()
+        if painted:
+            self.update(region)
+        self._record_tick_metrics(tick_started, painted=painted)
 
     def _find_lane(self, entry_x: float, w_new: float, v_new: float) -> int | None:
         """选轨道: 解析预测新弹幕(宽 w_new, 速 v_new, 从 entry_x 入场)是否会在
@@ -1180,13 +1231,35 @@ class DanmakuOverlay(QWidget):
         self._prev_tick = now
         return min(max(dt, 0.0), 0.05)
 
+    @staticmethod
+    def _with_item_region(region: QRegion, item: "Danmaku") -> QRegion:
+        if not item.entered or item.w <= 0 or item.h <= 0:
+            return region
+        rect = QRectF(item.x, item.y, item.w, item.h).toAlignedRect()
+        return region.united(rect.adjusted(-3, -3, 3, 3))
+
+    def _visible_region(self) -> QRegion:
+        region = QRegion()
+        for item in self._items:
+            region = self._with_item_region(region, item)
+        return region
+
+    def _record_tick_metrics(self, started: float, *, painted: bool) -> None:
+        cost_ms = (time.perf_counter() - started) * 1000.0
+        self._tick_ms = (self._tick_ms * 0.9 + cost_ms * 0.1) if self._tick_ms else cost_ms
+        if painted:
+            self._fps_frames += 1
+        elapsed = time.perf_counter() - self._fps_started
+        if elapsed >= 1.0:
+            self._fps = self._fps_frames / elapsed
+            self._fps_frames = 0
+            self._fps_started = time.perf_counter()
+
     # ── 绘制 ──────────────────────────────────────────────
     def paintEvent(self, _ev) -> None:  # noqa: N802
         from PySide6.QtCore import QPointF
 
         p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        p.setRenderHint(QPainter.SmoothPixmapTransform)
         now = time.time()
         for d in self._items:
             if not d.entered or d.sprite is None:
@@ -1371,8 +1444,9 @@ def run_overlay(
     app = QApplication.instance() or QApplication([])
     win = DanmakuOverlay(port=port, state_path=state_path)
     win.show()
+    win._apply_passthrough()
     # 延迟到 winId 就绪后原生置顶 (Qt WindowStaysOnTopHint + Win32 TOPMOST 双保险)
-    QTimer.singleShot(120, lambda: _keep_topmost(win))
+    QTimer.singleShot(120, lambda: (win._apply_passthrough(), _keep_topmost(win)))
     win.stateChanged.connect(lambda s: print(f"[overlay] {s}", flush=True))
     print(f"[overlay] v2 样式系统版启动 port={port}", flush=True)
     print("[overlay] 穿透默认; Ctrl+Alt+D 交互; Ctrl+Alt+F5 演示", flush=True)
