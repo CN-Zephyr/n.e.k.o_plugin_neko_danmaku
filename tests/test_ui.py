@@ -66,7 +66,8 @@ def test_liquid_glass_and_responsive_layout_contract():
     assert "@media (max-width: 680px)" in CSS
     assert "@media (prefers-reduced-motion: reduce)" in CSS
     assert "animation: drift" in CSS
-    assert "animation: float-line" in CSS
+    assert "animation: preview-sweep" in CSS
+    assert "@keyframes preview-sweep" in CSS
     assert "will-change: transform" in CSS
 
 

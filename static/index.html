@@ -876,6 +876,7 @@ kbd {
   position: relative;
   width: min(100%, 570px);
   aspect-ratio: 1.75;
+  container-type: inline-size;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 19px;
@@ -930,6 +931,7 @@ kbd {
 .danmaku-line {
   position: absolute;
   z-index: 2;
+  left: 0;
   max-width: 74%;
   overflow: hidden;
   padding: 5px 10px;
@@ -942,17 +944,30 @@ kbd {
   font-size: clamp(8px, 1vw, 12px);
   font-weight: 680;
   white-space: nowrap;
-  will-change: transform;
-  animation: float-line 8s linear infinite;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: preview-sweep 9s linear infinite;
 }
 
-.line-a { top: 30%; left: 10%; animation-delay: -2s; }
-.line-b { top: 49%; left: 29%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); animation-delay: -5s; }
-.line-c { top: 67%; left: 5%; color: #fff8df; background: rgba(108, 79, 30, 0.2); animation-delay: -7s; }
+.line-a { top: 30%; animation: preview-sweep 8.8s linear infinite -2.2s; }
+.line-b { top: 49%; color: #fff6fd; background: rgba(149, 73, 117, 0.24); animation: preview-sweep 9.8s linear infinite -5.4s; }
+.line-c { top: 67%; color: #fff8df; background: rgba(108, 79, 30, 0.2); animation: preview-sweep 10.8s linear infinite -8.1s; }
 
-@keyframes float-line {
-  from { transform: translateX(-45%); }
-  to { transform: translateX(24%); }
+@keyframes preview-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  8% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(calc(100cqw + 12px));
+  }
 }
 
 .stage-caption {
