@@ -36,11 +36,9 @@ jobs:
 
       - name: Run tests
         shell: pwsh
+        working-directory: tests
         run: |
-          $env:PYTHONPATH = Join-Path $env:GITHUB_WORKSPACE "neko"
-          python -m pytest tests -q -p no:cacheprovider `
-            -c (Join-Path $env:GITHUB_WORKSPACE "neko\pytest.ini") `
-            --rootdir (Join-Path $env:GITHUB_WORKSPACE "neko")
+          python -m pytest . -q -p no:cacheprovider
 
       - name: Run market-pinned Ruff rules
         run: >-
