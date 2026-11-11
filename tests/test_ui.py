@@ -19,6 +19,7 @@ def test_panel_uses_standard_single_file_static_layout():
     assert '<script src=' not in HTML
     assert 'data-theme-choice="dark"' in HTML
     assert 'location.search' in JS
+    assert 'id="prevlabel" class="text-input" value="YUI"' in HTML
     assert [path.name for path in (ROOT / "static").iterdir()] == ["index.html"]
 
 
