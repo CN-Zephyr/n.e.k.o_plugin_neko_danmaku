@@ -70,6 +70,7 @@ def test_repository_support_files_and_packaging_rules():
     for relative in (
         ".vscode/settings.json",
         ".vscode/tasks.json",
+        "AGENTS.md",
         ".gitignore",
         "README.md",
         "LICENSE",
@@ -90,6 +91,10 @@ def test_repository_support_files_and_packaging_rules():
     assert "data" in build["exclude_dirs"]
     assert "state" in build["exclude_dirs"]
     assert "tests" in build["exclude_dirs"]
+    assert "AGENTS.md" in build["exclude_files"]
+    assert "必须使用简体中文" in (
+        ROOT / "AGENTS.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_entry_module_declares_neko_plugin_class():

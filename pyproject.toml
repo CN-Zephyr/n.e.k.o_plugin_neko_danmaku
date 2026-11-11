@@ -19,6 +19,7 @@ exclude_dirs = [
 ]
 exclude_files = [
     ".gitignore",
+    "AGENTS.md",
     "README.md",
     "ruff.toml",
     "LICENSE",
