@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import os
 import sys
@@ -25,9 +26,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "windows")
 sys.path.insert(0, os.path.join(_PLUGIN, "vendor"))
 sys.path.insert(0, _HERE)
 
-import win_target as wt  # noqa: E402
-from PySide6.QtCore import QTimer  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+wt = importlib.import_module("win_target")
 
 spec = importlib.util.spec_from_file_location("ndm_overlay_live", os.path.join(_HERE, "app.py"))
 app_mod = importlib.util.module_from_spec(spec)
@@ -36,6 +35,8 @@ spec.loader.exec_module(app_mod)
 
 
 def main() -> int:
+    qt_core = importlib.import_module("PySide6.QtCore")
+    qt_widgets = importlib.import_module("PySide6.QtWidgets")
     game = wt.get_foreground_window()
     if not game:
         print("FAIL: 没有前台窗口 (先把游戏切到前台再运行)")
@@ -44,7 +45,7 @@ def main() -> int:
     obscured = wt.is_target_obscured(game)
     print(f"game hwnd={game} covers_monitor={covered} obscured={obscured}")
 
-    qapp = QApplication([])
+    qapp = qt_widgets.QApplication([])
     win = app_mod.DanmakuOverlay(port=49123)
     win.targetRequested.emit({"kind": "window", "hwnd": int(game), "mode": "client"})
     win.push("【自检】浮层覆盖测试 1/2", {"preset": "mix"})
@@ -67,8 +68,8 @@ def main() -> int:
               f"items={len(win._items)} entered={entered} dropped={getattr(win, '_dropped', 0)}")
         print(f"geometry={win.geometry().getRect()} visible={win.isVisible()}")
 
-    QTimer.singleShot(2500, _check)
-    QTimer.singleShot(4000, qapp.quit)
+    qt_core.QTimer.singleShot(2500, _check)
+    qt_core.QTimer.singleShot(4000, qapp.quit)
     qapp.exec()
 
     ok = bool(result.get("above_ok")) and result.get("entered", 0) >= 1

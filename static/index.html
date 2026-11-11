@@ -2851,10 +2851,10 @@ const FONTS = [
 const PRESETS = {
   clean: { label: "干净", color: "#ffffff", swatch: "#ffffff" },
   master: { label: "主人", color: "#fff6e5", swatch: "#fff6e5" },
-  neko: { label: "YUI", color: "#9adcff", swatch: "#9adcff" },
+  neko: { label: "YUI", color: "#a8e2ff", swatch: "#a8e2ff" },
   champagne: { label: "香槟", color: "#ffd78c", swatch: "#ffd78c" },
-  softbar: { label: "柔和底", color: "#ffffff", swatch: "#a9bad2" },
-  pink: { label: "粉色", color: "#ff9ad5", swatch: "#ff9ad5" },
+  softbar: { label: "柔和底", color: "#e8f7ff", swatch: "#e8f7ff" },
+  pink: { label: "粉色", color: "#ffb3d9", swatch: "#ffb3d9" },
   mix: {
     label: "彩色",
     color: "#ff9ad5",
@@ -3501,13 +3501,13 @@ function fillFromPreset(name) {
   curPreset = next;
   renderPresets();
   const map = {
-    clean: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 34, shadow: false, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    master: { color: "#fff6e5", stroke: "#20242c", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    neko: { color: "#9adcff", stroke: "#08243a", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    champagne: { color: "#ffd78c", stroke: "#4a2a08", width: 3, bg: "none", size: 36, shadow: true, glow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    softbar: { color: "#e8f7ff", stroke: "#102838", width: 2.5, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    pink: { color: "#ff9ad5", stroke: "#3a0a22", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
-    mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    clean: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 30, shadow: false, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    master: { color: "#fff6e5", stroke: "#161821", width: 3, bg: "none", size: 30, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    neko: { color: "#a8e2ff", stroke: "#08243a", width: 3, bg: "none", size: 30, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    champagne: { color: "#ffd78c", stroke: "#4a2a08", width: 3, bg: "none", size: 32, shadow: true, glow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    softbar: { color: "#e8f7ff", stroke: "#102838", width: 2.5, bg: "none", size: 30, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    pink: { color: "#ffb3d9", stroke: "#3a0a22", width: 3, bg: "none", size: 30, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
+    mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 30, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
   };
   const preset = map[next];
   const mixColor = next === "mix" ? pickMixPreviewColor() : null;
@@ -3520,6 +3520,7 @@ function fillFromPreset(name) {
   setRange("bg_alpha", preset.bgAlpha);
   setRange("bg_radius", preset.bgRadius);
   $("#p-bold").checked = true;
+  $("#p-grad_on").checked = false;
   $("#p-shadow_on").checked = preset.shadow;
   $("#p-glow_on").checked = Boolean(preset.glow);
   syncToggles();

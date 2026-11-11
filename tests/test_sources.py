@@ -160,14 +160,15 @@ def test_time_index_poll_after(tmp_path):
     p = _make_timeindex_db(str(tmp_path), [
         (1, "human", "甲"),
         (2, "ai", "乙"),
-        (3, "system", "忽略我"),
-        (4, "ai", [{"type": "text", "text": "丙"}]),
+        (5, "system", "忽略我"),
+        (8, "ai", [{"type": "text", "text": "丙"}]),
     ])
     src = TimeIndexSource(p)
-    assert src.current_max_id() == 4
+    assert src.current_max_id() == 8
     # 只取 id>2 的 human/ai (跳过 system)
     got = src.poll_after(2)
     assert got == [("ai", "丙")]
+    assert src.last_id == 8
     got0 = src.poll_after(0)
     assert len(got0) == 3
     assert got0[0] == ("human", "甲")

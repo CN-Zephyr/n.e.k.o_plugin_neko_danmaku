@@ -13,13 +13,13 @@ exclude_dirs = [
     ".pytest_cache",
     ".ruff_cache",
     "data",
+    "dist",
     "state",
     "tests",
     "_wheels_tmp",
 ]
 exclude_files = [
     ".gitignore",
-    "AGENTS.md",
     "README.md",
     "ruff.toml",
     "LICENSE",

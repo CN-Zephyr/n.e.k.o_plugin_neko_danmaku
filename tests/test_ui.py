@@ -80,7 +80,7 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
 
 
 def test_color_presets_are_transparent_text_styles():
-    assert 'neko: { color: "#9adcff", stroke: "#08243a", width: 3, bg: "none"' in JS
+    assert 'neko: { color: "#a8e2ff", stroke: "#08243a", width: 3, bg: "none"' in JS
     assert 'softbar: { color: "#e8f7ff", stroke: "#102838", width: 2.5, bg: "none"' in JS
     assert 'mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none"' in JS
     assert 'const alpha = Number($("#p-bg_alpha").value);' in JS
@@ -90,6 +90,13 @@ def test_mix_preview_randomizes_text_color_per_selection():
     assert "const MIX_COLORS = [" in JS
     assert "function pickMixPreviewColor()" in JS
     assert 'next === "mix" ? pickMixPreviewColor()' in JS
+
+
+def test_preset_switch_clears_stale_gradient_and_matches_qt_sizes():
+    assert '$("#p-grad_on").checked = false;' in JS
+    assert 'neko: { color: "#a8e2ff", stroke: "#08243a", width: 3, bg: "none", size: 30' in JS
+    assert 'champagne: { color: "#ffd78c", stroke: "#4a2a08", width: 3, bg: "none", size: 32' in JS
+    assert 'pink: { color: "#ffb3d9", stroke: "#3a0a22", width: 3, bg: "none", size: 30' in JS
 
 
 def test_readme_is_product_presentation_not_changelog():

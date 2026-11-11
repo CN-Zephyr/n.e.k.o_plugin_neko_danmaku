@@ -1,0 +1,90 @@
+name: Release N.E.K.O Plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  release:
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: x64
+
+      - name: Download verified package
+        uses: actions/download-artifact@v4
+        with:
+          name: neko-danmaku-package
+          path: dist
+
+      - name: Verify tag and package version
+        shell: pwsh
+        run: |
+          $version = python -c "import tomllib; print(tomllib.load(open('plugin.toml','rb'))['plugin']['version'])"
+          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match plugin.toml version $version"
+          }
+          $packageInfo = Get-Content -Raw -LiteralPath "dist\verification.txt"
+          if ($packageInfo -notmatch "sha256=[0-9a-f]{64}") {
+            throw "Package verification metadata is incomplete"
+          }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 弹幕猫娘 v0.2.0
+          body: |
+            **把 N.E.K.O 聊天变成游戏画面上的 YUI 弹幕**
+
+            这是「弹幕猫娘」的首个 GitHub Releases 版本，提供 Windows x64 可直接安装的 `.neko-plugin` 包。发布包已内置 PySide6/Qt，不需要另行安装 Python 图形依赖。
+
+            ### 核心体验
+            - **角色弹幕** — 主人与 YUI 的聊天按角色样式逐条飘过目标窗口，支持干净、主人、YUI、香槟、柔和底、粉色和随机彩色预设。
+            - **窗口跟随** — 可按窗口、进程或显示器绑定；移动、缩放窗口以及切换全屏后自动重新贴合。
+            - **鼠标穿透** — 默认不挡游戏操作，需要进入临时交互状态时使用 `Ctrl+Alt+D`，超时自动恢复穿透。
+            - **透明文字渲染** — 彩色与柔和样式使用透明背景，避免灰黑色底片遮挡原文效果。
+            - **多数据源** — 支持 recent 文件、宿主 SDK 消息通道和时间索引数据库，并持久化独立游标。
+
+            ### 修复与稳定性
+            - 修复 SDK 消息游标使用整数导致小数游标丢失，重启后重复播报的问题。
+            - 跳过被过滤的消息 ID 时仍推进到真实游标，避免同一条被忽略记录反复处理。
+            - 浮层 HTTP 服务改为多线程处理，避免并发请求阻塞弹幕。
+            - 增加等待队列上限，突发消息不会无限堆积占满内存。
+            - 运行中关闭插件会完整停止浮层；重新开启会重新创建运行实例。
+            - 切换预设时清除残留渐变，YUI 蓝色、柔和底和彩色预设保持一致。
+
+            ### 安装
+            1. 下载下方的 `neko_danmaku.neko-plugin`。
+            2. 打开 N.E.K.O 插件中心。
+            3. 选择「安装本地包」并导入下载的文件。
+            4. 启动插件，在面板中选择游戏窗口或显示器，然后点击「应用目标」。
+
+            ### 系统要求
+            - Windows 10/11 x64
+            - 支持外部插件并安装本地包的 N.E.K.O 版本
+            - 游戏建议使用无边框窗口或无边框全屏；独占全屏可能无法覆盖
+
+            发布包 SHA-256 记录在 `verification.txt` 中。
+          files: |
+            dist/neko_danmaku.neko-plugin
+            dist/verification.txt
+          fail_on_unmatched_files: true
+          generate_release_notes: false

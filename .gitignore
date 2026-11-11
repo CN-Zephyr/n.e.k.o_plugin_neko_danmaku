@@ -8,5 +8,6 @@ store.db
 bridge_cursor.json
 overlay_state.json
 _wheels_tmp/
+dist/
 *.neko-plugin
 *.neko-bundle

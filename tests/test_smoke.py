@@ -70,7 +70,6 @@ def test_repository_support_files_and_packaging_rules():
     for relative in (
         ".vscode/settings.json",
         ".vscode/tasks.json",
-        "AGENTS.md",
         ".gitignore",
         "README.md",
         "LICENSE",
@@ -91,10 +90,6 @@ def test_repository_support_files_and_packaging_rules():
     assert "data" in build["exclude_dirs"]
     assert "state" in build["exclude_dirs"]
     assert "tests" in build["exclude_dirs"]
-    assert "AGENTS.md" in build["exclude_files"]
-    assert "必须使用简体中文" in (
-        ROOT / "AGENTS.md"
-    ).read_text(encoding="utf-8")
 
 
 def test_entry_module_declares_neko_plugin_class():
@@ -124,6 +119,21 @@ def test_overlay_uses_incremental_paint_and_throttled_window_probes():
     assert "PROCESS_LOOKUP_TTL_S" in source
     assert "OBSCURE_CHECK_TTL_S" in source
     assert "self._apply_passthrough()" in source
+    assert "ThreadingHTTPServer" in source
+    assert "MAX_QUEUE_ITEMS" in source
+
+
+def test_runtime_preserves_fractional_sdk_cursor_and_uses_source_id():
+    runtime = (ROOT / "core" / "runtime.py").read_text(encoding="utf-8")
+    time_source = (ROOT / "sources" / "time_index.py").read_text(encoding="utf-8")
+    lifecycle = (ROOT / "__init__.py").read_text(encoding="utf-8")
+
+    assert "def _load_seen(self, ds: str | None = None) -> float:" in runtime
+    assert "value = float(data.get(\"seen\", 0)" in runtime
+    assert "seen = source.last_id" in runtime
+    assert "def last_id(self) -> int:" in time_source
+    assert "if not cfg.enabled:" in lifecycle
+    assert "await self.rt.shutdown()" in lifecycle
 
 
 def test_config_is_persisted_under_categorized_data_files():

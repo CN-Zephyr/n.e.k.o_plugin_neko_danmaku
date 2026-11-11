@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import socket
 import sys
 import threading
@@ -113,9 +114,12 @@ class OverlayHost:
         self._thread.start()
         self._started = True
         # 等浮层 HTTP 就绪 (最多 ~4s; 线程起来 + Qt 初始化 + server bind)
-        self._wait_ready()
-        self.log.info("浮层线程已启动(port=%s)", self.port)
-        return True
+        ready = self._wait_ready()
+        if ready:
+            self.log.info("浮层线程已启动(port=%s)", self.port)
+        else:
+            self.log.warning("浮层线程启动超时(port=%s)", self.port)
+        return ready
 
     def _wait_ready(self) -> bool:
         """轮询本地端口直到浮层 HTTP 可连。"""
@@ -143,6 +147,8 @@ class OverlayHost:
             pass
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=1.5)
+        if self._thread and self._thread.is_alive():
+            self.log.warning("浮层线程未在超时内退出(port=%s)", self.port)
         self._started = False
 
     @property
@@ -173,7 +179,7 @@ class DanmakuRuntime:
     def _seen_file(self) -> Path:
         return Path(self.plugin.data_path("state", "bridge_cursor.json"))
 
-    def _load_seen(self, ds: str | None = None) -> int:
+    def _load_seen(self, ds: str | None = None) -> float:
         """读取游标。旧格式 {seen} 视为无效(不跨源复用); 新格式带 source。"""
         ds = ds or self.cfg.data_source
         path = self._seen_file()
@@ -185,16 +191,19 @@ class DanmakuRuntime:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
-            return 0
+            return 0.0
         if isinstance(data, dict) and data.get("source") != ds:
-            return 0          # 数据源切换/旧格式 → 重新基线
+            return 0.0        # 数据源切换/旧格式 → 重新基线
         try:
-            return int(data.get("seen", 0) if isinstance(data, dict) else 0)
+            value = float(data.get("seen", 0) if isinstance(data, dict) else 0)
+            return value if math.isfinite(value) and value >= 0 else 0.0
         except Exception:
-            return 0
+            return 0.0
 
-    def _save_seen(self, n: int, ds: str | None = None) -> None:
+    def _save_seen(self, n: float, ds: str | None = None) -> None:
         ds = ds or self.cfg.data_source
+        if not math.isfinite(float(n)) or float(n) < 0:
+            return
         try:
             p = self._seen_file()
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -324,11 +333,11 @@ class DanmakuRuntime:
                                       len(items), seen, seen + len(items))
                     for role, text in items:
                         await self._push_one(url, role, text)
-                        seen += 1
                         # 逐条入场间隔: 避免一回复就"爆发"整批弹幕
                         if len(items) > 1:
                             await asyncio.sleep(0.35)
-                    if seen > self._load_seen():
+                    if source.last_id > seen:
+                        seen = source.last_id
                         self._save_seen(seen)
                 except asyncio.CancelledError:
                     raise
@@ -336,7 +345,7 @@ class DanmakuRuntime:
                     self.log.warning("桥 time_index 循环异常: %r", exc)
                 await asyncio.sleep(self.cfg.poll_interval_s)
         elif ds == "recent_file":
-            seen = self._load_seen()
+            seen = int(self._load_seen())
             if seen <= 0:
                 # 首次启动: 游标基线 = recent.json 当前条目数, 跳过存量历史,
                 # 只播「启动之后」新增的宿主聊天 (不重放旧对话刷屏)。

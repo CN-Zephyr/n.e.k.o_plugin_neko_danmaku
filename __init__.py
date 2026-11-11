@@ -84,8 +84,18 @@ class NekoDanmakuPlugin(NekoPluginBase):
         """配置热更新: 桥轮询间隔/角色预设/浮层开关/端口。"""
         try:
             cfg = await self._load_config()
-            if self.rt:
-                await self.rt.apply_config(cfg.to_dict())
+            if not cfg.enabled:
+                if self.rt:
+                    await self.rt.shutdown()
+                    self.rt = None
+                return Ok({"status": "disabled"})
+            if self.rt is None:
+                from .core.runtime import DanmakuRuntime
+
+                self.rt = DanmakuRuntime(self, cfg)
+                status = await self.rt.start()
+                return Ok({"status": "started", **status})
+            await self.rt.apply_config(cfg.to_dict())
             return Ok({"status": "reloaded"})
         except Exception as exc:
             self.logger.warning("config_change failed: %s", exc)

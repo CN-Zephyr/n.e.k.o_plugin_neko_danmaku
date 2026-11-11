@@ -112,6 +112,7 @@ OBSCURE_CHECK_TTL_S = 0.5    # 遮挡检测频率
 FADE_IN_MS = 130             # 入场淡入时长
 FADE_OUT_PX = 150            # 左边缘最后 150px 内淡出
 MAX_ITEMS = 42               # 同屏条数上限(超出排队, 防止糊屏)
+MAX_QUEUE_ITEMS = 200        # 等待入轨的队列上限(防止突发无限堆积)
 WRAP_RATIO = 0.62            # 自动折行宽度 = 屏宽 × 该比例
 MAX_LINES = 3                # 自动折行最多行数(超出加省略号)
 BASE_SCREEN_W = 1920         # 字号自适应基准屏宽
@@ -370,7 +371,7 @@ class DanmakuOverlay(QWidget):
 
     # ── HTTP ──────────────────────────────────────────────
     def _start_http_server(self) -> None:
-        from http.server import BaseHTTPRequestHandler, HTTPServer
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
         win = self
 
@@ -466,7 +467,11 @@ class DanmakuOverlay(QWidget):
             def log_message(self, *a):  # noqa: N802
                 pass
 
-        self._http = HTTPServer(("127.0.0.1", self._port), _Handler)
+        class _Server(ThreadingHTTPServer):
+            daemon_threads = True
+            allow_reuse_address = True
+
+        self._http = _Server(("127.0.0.1", self._port), _Handler)
         threading.Thread(target=self._http.serve_forever, daemon=True).start()
         print(f"[overlay] http://127.0.0.1:{self._port}/push|/config|/presets", flush=True)
 
@@ -834,6 +839,16 @@ class DanmakuOverlay(QWidget):
                       f"obscured={self._obscured} "
                       f"pending={bool(getattr(self, '_pending_spec', None))} "
                       f"count={self._dropped}", flush=True)
+            return False
+        queued = sum(1 for item in self._items if not item.entered)
+        if queued >= MAX_QUEUE_ITEMS:
+            self._dropped = int(getattr(self, "_dropped", 0)) + 1
+            if self._dropped in (1, 10, 50) or self._dropped % 200 == 0:
+                print(
+                    f"[overlay] queue full: pending={queued} "
+                    f"count={self._dropped}",
+                    flush=True,
+                )
             return False
         style = dict(style or {})
         isolated = bool(style.pop("_isolated", False))

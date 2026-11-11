@@ -30,6 +30,7 @@ class TimeIndexSource:
     def __init__(self, db_path: str) -> None:
         self.path = db_path
         self._con: sqlite3.Connection | None = None
+        self._last_id = 0
 
     # sqlite 连接: 只读 + 每次 poll 复用; 宿主是唯一写者, 读安全。
     def _conn(self) -> sqlite3.Connection:
@@ -70,13 +71,15 @@ class TimeIndexSource:
     def poll_after(self, after_id: int) -> list[tuple[str, str]]:
         """取 id > after_id 的新增, 返回 [(role, raw_text)] (保留时间序)。"""
         out: list[tuple[str, str]] = []
+        self._last_id = int(after_id)
         try:
             if not self._table_exists():
                 return out
             cur = self._conn().execute(
-                f"SELECT message FROM {_TABLE} WHERE id > ? ORDER BY id",
+                f"SELECT id, message FROM {_TABLE} WHERE id > ? ORDER BY id",
                 (int(after_id),))
-            for (msg_json,) in cur.fetchall():
+            for row_id, msg_json in cur.fetchall():
+                self._last_id = max(self._last_id, int(row_id))
                 try:
                     rec = json.loads(msg_json)
                 except Exception:
@@ -90,3 +93,8 @@ class TimeIndexSource:
         except Exception:
             return out
         return out
+
+    @property
+    def last_id(self) -> int:
+        """Highest row id covered by the latest poll, including ignored rows."""
+        return self._last_id
