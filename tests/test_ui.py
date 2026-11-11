@@ -79,11 +79,10 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
     assert "if (formDirty)" in JS
 
 
-def test_softbar_preset_uses_adaptive_background_color():
-    assert 'bgColor: "#47b9ff"' in JS
-    assert 'bgColor: "#68c7ea"' in JS
-    assert 'bgColor: "#c070e8"' in JS
-    assert 'setRange("bg_alpha", preset.bgAlpha);' in JS
+def test_color_presets_are_transparent_text_styles():
+    assert 'neko: { color: "#9adcff", stroke: "#08243a", width: 3, bg: "none"' in JS
+    assert 'softbar: { color: "#e8f7ff", stroke: "#102838", width: 2.5, bg: "none"' in JS
+    assert 'mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none"' in JS
     assert 'const alpha = Number($("#p-bg_alpha").value);' in JS
 
 

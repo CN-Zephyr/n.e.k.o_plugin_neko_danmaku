@@ -44,13 +44,13 @@ def test_overlay_style_sanitizes_untrusted_values():
     assert "fill_gradient" not in style
 
 
-def test_soft_background_uses_blue_gray_instead_of_black():
+def test_color_presets_render_transparent_text_without_background():
     overlay = _load_overlay_module()
-    softbar = overlay.PRESETS["softbar"]
-
-    assert softbar["bg"] == "soft"
-    assert softbar["bg_color"] == "#68c7ea"
-    assert softbar["bg_alpha"] == 36
+    for name in ("neko", "softbar", "mix"):
+        assert overlay.PRESETS[name]["bg"] == "none"
+    assert overlay.PRESETS["neko"]["text_color"] == "#a8e2ff"
+    assert overlay.PRESETS["softbar"]["text_color"] == "#e8f7ff"
+    assert overlay.PRESETS["mix"]["text_color"] == "#ffffff"
 
 
 def test_overlay_style_keeps_valid_customization():
