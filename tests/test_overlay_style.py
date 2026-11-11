@@ -44,6 +44,15 @@ def test_overlay_style_sanitizes_untrusted_values():
     assert "fill_gradient" not in style
 
 
+def test_soft_background_uses_blue_gray_instead_of_black():
+    overlay = _load_overlay_module()
+    softbar = overlay.PRESETS["softbar"]
+
+    assert softbar["bg"] == "soft"
+    assert softbar["bg_color"] == "#7fa5c4"
+    assert softbar["bg_alpha"] == 48
+
+
 def test_overlay_style_keeps_valid_customization():
     overlay = _load_overlay_module()
     style = overlay.sanitize_style({

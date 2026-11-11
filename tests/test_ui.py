@@ -79,6 +79,12 @@ def test_panel_avoids_inline_click_handlers_and_overlapping_refresh():
     assert "if (formDirty)" in JS
 
 
+def test_softbar_preset_uses_adaptive_background_color():
+    assert 'bgColor: "#7fa5c4"' in JS
+    assert 'setRange("bg_alpha", preset.bgAlpha);' in JS
+    assert 'bg === "soft" ? 100' not in JS
+
+
 def test_readme_is_product_presentation_not_changelog():
     assert "更新日志" not in README
     assert "核心体验" in README
