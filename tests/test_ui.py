@@ -86,6 +86,12 @@ def test_color_presets_are_transparent_text_styles():
     assert 'const alpha = Number($("#p-bg_alpha").value);' in JS
 
 
+def test_mix_preview_randomizes_text_color_per_selection():
+    assert "const MIX_COLORS = [" in JS
+    assert "function pickMixPreviewColor()" in JS
+    assert 'next === "mix" ? pickMixPreviewColor()' in JS
+
+
 def test_readme_is_product_presentation_not_changelog():
     assert "更新日志" not in README
     assert "核心体验" in README

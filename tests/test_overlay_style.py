@@ -51,6 +51,7 @@ def test_color_presets_render_transparent_text_without_background():
     assert overlay.PRESETS["neko"]["text_color"] == "#a8e2ff"
     assert overlay.PRESETS["softbar"]["text_color"] == "#e8f7ff"
     assert overlay.PRESETS["mix"]["text_color"] == "#ffffff"
+    assert len(overlay.PRESETS["mix"]["color_pool"]) >= 6
 
 
 def test_overlay_style_keeps_valid_customization():

@@ -2862,6 +2862,23 @@ const PRESETS = {
   },
 };
 
+const MIX_COLORS = [
+  { color: "#9adcff", stroke: "#0a2438" },
+  { color: "#ff9ad5", stroke: "#3a0a22" },
+  { color: "#ffd78c", stroke: "#4a2a08" },
+  { color: "#b3ff8f", stroke: "#123a0a" },
+  { color: "#c9a7ff", stroke: "#24103a" },
+  { color: "#ffb36b", stroke: "#3a1c08" },
+];
+let lastMixPreviewColor = "";
+
+function pickMixPreviewColor() {
+  const candidates = MIX_COLORS.filter((item) => item.color !== lastMixPreviewColor);
+  const picked = candidates[Math.floor(Math.random() * candidates.length)] || MIX_COLORS[0];
+  lastMixPreviewColor = picked.color;
+  return picked;
+}
+
 const RANGE_IDS = [
   "font_size",
   "stroke_width",
@@ -3493,8 +3510,9 @@ function fillFromPreset(name) {
     mix: { color: "#ffffff", stroke: "#101018", width: 3, bg: "none", size: 34, shadow: true, bgColor: "#0a0a14", bgAlpha: 80, bgRadius: 10 },
   };
   const preset = map[next];
-  $("#p-text_color").value = preset.color;
-  $("#p-stroke_color").value = preset.stroke;
+  const mixColor = next === "mix" ? pickMixPreviewColor() : null;
+  $("#p-text_color").value = mixColor?.color || preset.color;
+  $("#p-stroke_color").value = mixColor?.stroke || preset.stroke;
   setRange("stroke_width", preset.width);
   setRange("font_size", preset.size);
   $("#p-bg").value = preset.bg;
