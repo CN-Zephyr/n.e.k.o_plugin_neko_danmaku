@@ -2564,7 +2564,7 @@ kbd {
                 </div>
                 <label class="preview-input">
                   <span>预览文字</span>
-                  <input id="prevlabel" class="text-input" value="YUI">
+                  <input id="prevlabel" class="text-input" value="会吐弹幕的可爱猫娘YUI~喵">
                 </label>
                 <div class="form-status" id="dirtyHint">样式尚未修改</div>
                 <div class="save-dock">
@@ -3619,7 +3619,7 @@ function drawPreviewCanvas(canvas, compact = false) {
   const render = canvasContext(canvas);
   if (!render) return;
   const { context, width, height } = render;
-  const text = ($("#prevlabel")?.value || "YUI").trim();
+  const text = ($("#prevlabel")?.value || "会吐弹幕的可爱猫娘YUI~喵").trim();
   const fontSize = Math.max(14, Number($("#p-font_size").value) * (compact ? 0.82 : 1));
   const bold = $("#p-bold").checked;
   const textColor = $("#p-text_color").value;
@@ -3833,7 +3833,7 @@ async function runSelfTest(button) {
 
 function resetAppearance() {
   fillFromPreset("clean");
-  $("#prevlabel").value = "YUI";
+  $("#prevlabel").value = "会吐弹幕的可爱猫娘YUI~喵";
   showToast("已恢复干净样式，点击「保存外观」同步到浮层");
 }
 
